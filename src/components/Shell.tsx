@@ -62,7 +62,6 @@ export default function Shell({ children }: { children: ReactNode }) {
         {/* Sign out */}
         <button
           onClick={() => { logout(); navigate('/login') }}
-          onClick={() => { logout(); navigate('/') }}
           className="vtab"
           style={{ marginTop: 16, background: '#ffffff', border: '1.5px solid #e8e8e8', borderLeft: 'none' }}
           onMouseEnter={(e) => {

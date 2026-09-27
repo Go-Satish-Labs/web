@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 
 type Pet = {
   id: number
@@ -32,11 +32,6 @@ function makePet(id: number): Pet {
 
 export default function VirtualPets() {
   const pets = useMemo(() => Array.from({ length: 6 }, (_, i) => makePet(i)), [])
-  const [tick, setTick] = useState(0)
-  useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 22000)
-    return () => clearInterval(id)
-  }, [])
 
   return (
     <div className="virtual-pets" aria-hidden="true">

@@ -162,7 +162,7 @@ function Chart({ chart }: { chart: ChartSpec }) {
       <div style={{ fontSize: 15, fontWeight: 700, color: '#0a0a0a', margin: '4px 0 14px' }}>{fn(chart.title)}</div>
       <ResponsiveContainer width="100%" height={220}>
         <PieChart>
-          <Pie data={chart.data} dataKey="y" nameKey="x" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+          <Pie data={chart.data} dataKey="y" nameKey="x" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`} labelLine={false}>
             {chart.data.map((_, i) => <Cell key={i} fill={GRAYS[i % GRAYS.length]} />)}
           </Pie>
           <Tooltip {...tt} />
@@ -299,7 +299,7 @@ function PredictionsPanel({ p }: { p: Prediction }) {
         <div>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Groups found in your data</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {p.cluster_sizes.map((c, i) => (
+            {p.cluster_sizes.map((c) => (
               <div key={c.cluster} style={{ padding: '8px 14px', borderRadius: 10, background: '#f3f3f3', border: '1.5px solid #e8e8e8', textAlign: 'center' }}>
                 <div style={{ fontSize: 11, color: '#6b6b6b', fontWeight: 600 }}>{c.cluster}</div>
                 <div className="font-mono-num" style={{ fontSize: 18, fontWeight: 800, color: '#0a0a0a' }}>{c.count.toLocaleString()}</div>
