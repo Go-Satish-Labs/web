@@ -47,14 +47,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(data)
       setAuthError('')
     } catch (error) {
-      const status = (error as { response?: { status?: number } })?.response?.status
-      setAuthError(
-        status === 502
-          ? 'Your sign-in worked, but the backend API is not running. Its Supabase database connection must be fixed before a workspace can be created.'
-          : status
-          ? 'Your sign-in worked, but the workspace service could not complete your session. Please try again shortly.'
-          : 'Your sign-in worked, but the workspace service is offline. The database connection needs attention.',
-      )
+      const response = (error as { response?: { status?: number } })?.response
+      const status = response?.status
+      if (status === 503) {
+        // Backend is running but cannot reach its database (see Brain/DATABASE.md).
+        setAuthError('Your sign-in worked, but the workspace service cannot reach its database right now. No data was lost - please try again in a minute.')
+      } else if (status === 502) {
+        setAuthError('Your sign-in worked, but the backend API is not running. Its Supabase database connection must be fixed before a workspace can be created.')
+      } else if (status) {
+        setAuthError('Your sign-in worked, but the workspace service could not complete your session. Please try again shortly.')
+      } else {
+        setAuthError('Your sign-in worked, but the workspace service is offline. The database connection needs attention.')
+      }
       setUser(null)
       if (throwOnFailure) throw error
     } finally {

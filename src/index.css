@@ -47,17 +47,23 @@ body {
   border-radius: 6px;
 }
 
-input, select, textarea {
+/* App inputs (not auth glass panel) */
+main input, main select, main textarea {
   background: var(--bg-white);
   color: var(--text);
   border: 1.5px solid var(--border);
   border-radius: 10px;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
-input:focus, select:focus, textarea:focus {
+main input:focus, main select:focus, main textarea:focus {
   outline: none;
   border-color: var(--text);
   box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
 
 ::selection { background: #0a0a0a; color: #fff; }
@@ -67,6 +73,14 @@ button { font-family: inherit; cursor: pointer; }
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
+
+/* ── Auth page: override global input styles inside glass panel ── */
+.auth-input-override input,
+.auth-input-override input:focus {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
 
 /* ── Login canvas background ── */
 .canvas-bg {
@@ -161,3 +175,320 @@ button { font-family: inherit; cursor: pointer; }
 
 .vtab:hover .vtab-label { opacity: 1; color: var(--text); }
 .vtab.active .vtab-label { opacity: 1; color: #ffffff; }
+
+/* ── Mobile bottom nav ── */
+.bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 100;
+  height: 64px;
+  background: #ffffff;
+  border-top: 1.5px solid var(--border);
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 8px;
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
+}
+
+.bottom-nav .bn-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex: 1;
+  height: 100%;
+  justify-content: center;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 10px;
+  font-weight: 600;
+  transition: color 0.15s, background 0.15s;
+  border-radius: 10px;
+}
+
+.bottom-nav .bn-item svg { width: 22px; height: 22px; }
+
+.bottom-nav .bn-item.active { color: var(--accent); background: var(--accent-light); }
+.bottom-nav .bn-item:not(.active):hover { color: var(--text); background: var(--bg-subtle); }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  /* Hide the fixed vertical rail on mobile */
+  .vtab-rail { display: none !important; }
+
+  /* Show the bottom nav instead */
+  .bottom-nav { display: flex !important; }
+
+  /* Header: full width, tighter padding */
+  header { left: 0 !important; right: 0 !important; padding: 0 16px 0 16px !important; }
+
+  /* Main content: full width, no left offset */
+  main { paddingLeft: 0 !important; }
+
+  main > div { padding: 20px 16px !important; maxWidth: 100% !important; }
+
+  /* Forms: full width */
+  .login-form-panel { width: 100% !important; padding: 24px 16px !important; }
+
+  /* KPI cards: single column on small screens */
+  .kpi-grid { gridTemplateColumns: 1fr !important; }
+
+  /* Chart grid: single column */
+  .chart-grid { gridTemplateColumns: 1fr !important; }
+
+  /* Dataset list rows: stack on mobile */
+  .dataset-row { flexWrap: wrap !important; gap: 12px !important; padding: 12px 16px !important; }
+
+  /* Dataset title bar */
+  .dataset-title-bar { flexWrap: wrap !important; gap: 12px !important; }
+
+  /* Hero: tighter */
+  .hero-card { padding: 20px 16px !important; }
+  .hero-title { fontSize: 22 !important; }
+
+  /* Login page: stack panels */
+  .login-page { flexDirection: column !important; }
+
+  /* Login left panel: hidden on mobile */
+  .login-left-panel { display: none !important; }
+
+  /* Login right panel: full width */
+  .login-right-panel { width: 100% !important; flexShrink: 0 !important; padding: 28px 20px !important; }
+
+  /* Preview modal: smaller max width */
+  .preview-modal { maxWidth: 95vw !important; }
+
+  /* Top/bottom ranking: single column on mobile */
+  .ranking-grid { gridTemplateColumns: 1fr !important; }
+
+  /* Table: horizontal scroll handled by overflowX:auto already */
+}
+
+@media (max-width: 480px) {
+  body { fontSize: 14px; }
+  h1 { fontSize: 20px !important; }
+  .font-mono-num { fontSize: 20px !important; }
+  .kpi-value { fontSize: 22 !important; }
+  .hero-stat { fontSize: 20 !important; }
+  .hero-title { fontSize: 18 !important; }
+  .bottom-nav .bn-item { fontSize: 9px; }
+}
+
+/* ── Virtual pets ── */
+.virtual-pets {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.pet {
+  position: absolute;
+  left: var(--pet-x, 50%);
+  top: var(--pet-y, 50%);
+  will-change: transform;
+  filter: drop-shadow(0 6px 10px rgba(0,0,0,0.18));
+  animation: petRoam var(--pet-dur, 20s) var(--pet-delay, 0s) ease-in-out infinite alternate;
+}
+
+.pet-body {
+  display: inline-block;
+  transform-origin: center bottom;
+}
+
+.pet-emoji {
+  display: inline-block;
+  font-size: clamp(22px, 3.4vw, 40px);
+  line-height: 1;
+  animation: petBob 2.6s ease-in-out infinite;
+}
+
+.pet-trail {
+  position: absolute;
+  inset: -14px -8px -14px -8px;
+  background: radial-gradient(circle, rgba(99,102,241,0.18), transparent 60%);
+  border-radius: 50%;
+  filter: blur(6px);
+  opacity: 0;
+  animation: petTrail 2.6s ease-in-out infinite;
+}
+
+@keyframes petRoam {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(6vw, -4vh); }
+  50%  { transform: translate(-5vw, 4vh); }
+  75%  { transform: translate(4vw, -3vh); }
+  100% { transform: translate(-6vw, 2vh); }
+}
+
+@keyframes petBob {
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50% { transform: translateY(-6px) rotate(4deg); }
+}
+
+@keyframes petTrail {
+  0%, 100% { opacity: 0; transform: scale(0.6); }
+  50% { opacity: 0.8; transform: scale(1.05); }
+}
+
+@media (min-width: 769px) {
+  .pet:nth-child(1) { --pet-dur: 22s; --pet-delay: 0s; }
+  .pet:nth-child(2) { --pet-dur: 18s; --pet-delay: 2s; }
+  .pet:nth-child(3) { --pet-dur: 26s; --pet-delay: 4s; }
+  .pet:nth-child(4) { --pet-dur: 20s; --pet-delay: 6s; }
+  .pet:nth-child(5) { --pet-dur: 24s; --pet-delay: 8s; }
+  .pet:nth-child(6) { --pet-dur: 16s; --pet-delay: 1s; }
+}
+
+@media (max-width: 768px) {
+  /* Fewer, smaller pets on mobile */
+  .virtual-pets .pet:nth-child(n+4) { display: none; }
+  .pet-emoji { font-size: clamp(18px, 4vw, 28px); }
+}
+
+/* ── Rocket upload dialog ── */
+.rocket-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10,10,10,0.55);
+  backdrop-filter: blur(6px);
+  WebkitBackdropFilter: blur(6px);
+  animation: rocketFadeIn 0.35s ease;
+}
+
+.rocket-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 28px 36px;
+  background: #ffffff;
+  border-radius: 18px;
+  boxShadow: 0 24px 60px rgba(0,0,0,0.35);
+  border: 1.5px solid #e8e8e8;
+  maxWidth: 92vw;
+}
+
+.rocket {
+  position: relative;
+  width: 220px;
+  height: 180px;
+}
+
+.rocket-body {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  animation: rocketLaunch 1.1s ease-in-out infinite alternate;
+}
+
+.rocket-flame {
+  position: absolute;
+  left: 50%;
+  bottom: -14px;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 26px;
+  background: linear-gradient(180deg, #fbbf24, #f97316, transparent);
+  border-radius: 50% 50% 0 0;
+  filter: blur(2px);
+  animation: flameFlick 0.18s ease-in-out infinite alternate;
+}
+
+.rocket-moon {
+  position: absolute;
+  right: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.moon-crater {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  margin-left: 4px;
+}
+
+.rocket-status {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0a0a0a;
+  letter-spacing: -0.01em;
+}
+
+.rocket-footnote {
+  font-size: 12px;
+  color: #6b6b6b;
+  margin-top: -8px;
+}
+
+/* Launch: rocket rises, moon stays still */
+.rocket-launching .rocket-body { animation: rocketLaunch 1.1s ease-in-out infinite alternate; }
+.rocket-launching .rocket-moon { animation: moonIdle 1.1s ease-in-out infinite alternate; }
+
+/* Flying: rocket arcs to the top-right toward the moon */
+.rocket-flying .rocket-body {
+  animation: rocketFly 1.6s ease-in-out infinite alternate;
+}
+.rocket-flying .rocket-moon {
+  animation: moonGlow 1.6s ease-in-out infinite alternate;
+}
+
+/* Landed: rocket parks next to the moon */
+.rocket-landed .rocket-body {
+  animation: rocketPark 0.9s ease-in-out infinite alternate;
+}
+.rocket-landed .rocket-moon {
+  animation: moonIdle 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes rocketLaunch {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(-18px); }
+}
+
+@keyframes rocketFly {
+  0%   { transform: translate(0, 0); }
+  100% { transform: translate(96px, -120px); }
+}
+
+@keyframes rocketPark {
+  0%   { transform: translate(0, 0); }
+  100% { transform: translate(96px, -120px); }
+}
+
+@keyframes moonIdle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes moonGlow {
+  0%, 100% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 0 rgba(226,232,240,0)); }
+  50% { transform: translateY(-4px) scale(1.08); filter: drop-shadow(0 0 10px rgba(226,232,240,0.6)); }
+}
+
+@keyframes flameFlick {
+  0%   { height: 22px; opacity: 0.9; }
+  100% { height: 30px; opacity: 1; }
+}
+
+@keyframes rocketFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (max-width: 640px) {
+  .rocket { width: 170px; height: 140px; }
+  .rocket-box { padding: 22px 24px; }
+  .rocket-status { font-size: 14px; }
+}

@@ -1,268 +1,428 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import {
-  Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer,
-  Tooltip, XAxis, YAxis,
+  Bar, BarChart, CartesianGrid, Cell, Line, LineChart,
+  Pie, PieChart, ResponsiveContainer, Scatter, ScatterChart,
+  Tooltip, XAxis, YAxis, Legend,
 } from 'recharts'
 import Shell from '../components/Shell'
-import { api, type ChartSpec, type DashboardConfig } from '../lib/api'
+import { api, type ChartSpec, type DashboardConfig, type Prediction, type DataStructure } from '../lib/api'
 
-const CARD_GRADIENTS = [
-  'linear-gradient(135deg,#6366f1,#8b5cf6)',
-  'linear-gradient(135deg,#3b82f6,#6366f1)',
-  'linear-gradient(135deg,#10b981,#3b82f6)',
-  'linear-gradient(135deg,#f59e0b,#ef4444)',
-]
-
-const card: React.CSSProperties = {
-  borderRadius: 14,
-  padding: '20px',
-  background: '#fff',
-  border: '1.5px solid var(--border)',
-  boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
+/* ── helpers ── */
+function fn(raw: string): string {
+  return raw.replace(/_growth_pct$/i, ' Growth').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).trim()
+}
+function anomalyMsg(type: string, col: string | null, count?: number, value?: number): string {
+  switch (type) {
+    case 'outliers':       return `${count} unusual value${count !== 1 ? 's' : ''} in "${fn(col ?? '')}" — far outside the normal range, may be errors.`
+    case 'invalid_dates':  return `${count} unreadable date${count !== 1 ? 's' : ''} in "${fn(col ?? '')}" — check for typos or mixed formats.`
+    case 'high_missing_pct': return `"${fn(col ?? '')}" is ${value}% empty — over 1 in 5 rows missing.`
+    case 'duplicate_rows': return `${count} duplicate row${count !== 1 ? 's' : ''} — same record appears more than once, may inflate totals.`
+    default: return `${fn(type)}${col ? ` in "${fn(col)}"` : ''}`
+  }
+}
+function corrLabel(r: number): { text: string; color: string } {
+  const a = Math.abs(r), dir = r >= 0 ? 'move together' : 'move oppositely'
+  if (a >= 0.8) return { text: `Very strong — they ${dir}`, color: '#16a34a' }
+  if (a >= 0.6) return { text: `Strong — they tend to ${dir}`, color: '#16a34a' }
+  if (a >= 0.4) return { text: `Moderate — somewhat ${dir}`, color: '#ca8a04' }
+  if (a >= 0.2) return { text: `Weak — slight tendency to ${dir}`, color: '#6b6b6b' }
+  return { text: 'No meaningful relationship', color: '#a8a8a8' }
 }
 
-const tooltipStyle = {
-  contentStyle: { borderRadius: 10, borderColor: 'var(--border)', background: '#fff', color: 'var(--text)', boxShadow: '0 4px 16px rgba(0,0,0,0.1)' },
-  labelStyle: { color: 'var(--text-muted)', fontWeight: 600 },
-}
+const card: React.CSSProperties = { borderRadius: 14, padding: '20px', background: '#fff', border: '1.5px solid var(--border)', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }
+const tt = { contentStyle: { borderRadius: 10, borderColor: '#e8e8e8', background: '#fff', fontSize: 12 }, labelStyle: { fontWeight: 600, color: '#6b6b6b' } }
+const GRAYS = ['#0a0a0a', '#3a3a3a', '#6b6b6b', '#a8a8a8', '#d0d0d0', '#e8e8e8', '#f3f3f3']
 
-function SectionTitle({ title, subtitle }: { title: string; subtitle?: string }) {
+/* ── Data structure banner ── */
+function StructureBanner({ ds }: { ds: DataStructure }) {
+  const bg   = ds.is_labeled ? '#f0fdf4' : '#fffbeb'
+  const border = ds.is_labeled ? 'rgba(22,163,74,0.2)' : 'rgba(202,138,4,0.25)'
+  const color  = ds.is_labeled ? '#15803d' : '#92400e'
+  const icon   = ds.is_labeled ? '🏷️' : '🔍'
   return (
-    <div style={{ marginBottom: 16 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)' }}>{title}</div>
-      {subtitle && <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>{subtitle}</p>}
+    <div style={{ padding: '14px 18px', borderRadius: 12, background: bg, border: `1.5px solid ${border}`, marginBottom: 24, fontSize: 13, color, lineHeight: 1.6 }}>
+      <span style={{ fontWeight: 700 }}>{icon} {ds.is_labeled ? 'Labeled dataset detected' : 'Unlabeled dataset detected'} — </span>
+      {ds.summary}
+      {!ds.has_headers && <span style={{ display: 'block', marginTop: 4, opacity: 0.8 }}>Columns were auto-named since no headers were found.</span>}
     </div>
   )
 }
 
+/* ── KPI cards ── */
 function KpiCards({ config }: { config: DashboardConfig }) {
   return (
-    <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', marginBottom: 32 }}>
-      {config.kpi_cards.map((k, i) => (
-        <div key={k.metric} style={{ ...card, position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: CARD_GRADIENTS[i % CARD_GRADIENTS.length] }} />
-          <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)', marginBottom: 12 }}>
-            {k.metric}
+    <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', marginBottom: 32 }} className="kpi-grid">
+      {config.kpi_cards.map(k => {
+        const isGrowth = k.growth_pct !== undefined && k.growth_pct !== null
+        return (
+          <div key={k.metric} style={{ ...card, position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: '#0a0a0a' }} />
+            <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b6b6b', marginBottom: 10 }}>{fn(k.metric)}</div>
+            {isGrowth ? (
+              <>
+                <div className="font-mono-num" style={{ fontSize: 26, fontWeight: 800, color: (k.growth_pct ?? 0) >= 0 ? '#16a34a' : '#dc2626' }}>
+                  {(k.growth_pct ?? 0) >= 0 ? '+' : ''}{k.growth_pct}%
+                </div>
+                <div style={{ fontSize: 12, color: '#6b6b6b', marginTop: 6 }}>{(k.growth_pct ?? 0) >= 0 ? '↑ Increased' : '↓ Decreased'} over period</div>
+              </>
+            ) : (
+              <>
+                <div className="font-mono-num" style={{ fontSize: 24, fontWeight: 800, color: '#0a0a0a' }}>{k.sum?.toLocaleString() ?? '—'}</div>
+                <div style={{ fontSize: 12, color: '#6b6b6b', marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <span>avg {k.average?.toLocaleString() ?? '—'}</span>
+                  <span>· {k.count?.toLocaleString()} rows</span>
+                </div>
+              </>
+            )}
           </div>
-          {k.growth_pct !== undefined && k.growth_pct !== null ? (
-            <div className="font-mono-num" style={{ fontSize: 28, fontWeight: 800, color: k.growth_pct >= 0 ? 'var(--good)' : 'var(--bad)' }}>
-              {k.growth_pct >= 0 ? '+' : ''}{k.growth_pct}%
-            </div>
-          ) : (
-            <>
-              <div className="font-mono-num" style={{ fontSize: 28, fontWeight: 800, color: 'var(--text)' }}>
-                {k.sum?.toLocaleString()}
-              </div>
-              <div style={{ display: 'flex', gap: 12, fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
-                <span>avg {k.average?.toLocaleString()}</span>
-                <span>n={k.count}</span>
-              </div>
-            </>
-          )}
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
 
-function ChartBadge({ label }: { label: string }) {
-  return (
-    <span style={{ fontSize: 11, fontWeight: 600, padding: '4px 12px', borderRadius: 20, background: 'var(--accent-light)', color: 'var(--accent)' }}>
-      {label}
-    </span>
-  )
-}
-
+/* ── Charts ── */
 function Chart({ chart }: { chart: ChartSpec }) {
-  if (chart.type === 'line' && chart.data) {
+  if (chart.type === 'line' && chart.data) return (
+    <div style={card}>
+      <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b6b6b' }}>Trend</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: '#0a0a0a', margin: '4px 0 4px' }}>{fn(chart.title)}</div>
+      <div style={{ fontSize: 12, color: '#a8a8a8', marginBottom: 14 }}>How this value changed over time</div>
+      <ResponsiveContainer width="100%" height={220}>
+        <LineChart data={chart.data}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e8e8e8" vertical={false} />
+          <XAxis dataKey="x" tick={{ fontSize: 10, fill: '#a8a8a8' }} tickLine={false} axisLine={false} />
+          <YAxis tick={{ fontSize: 10, fill: '#a8a8a8' }} tickLine={false} axisLine={false} width={48} />
+          <Tooltip {...tt} />
+          <Line type="monotone" dataKey="y" stroke="#0a0a0a" strokeWidth={2} dot={false} />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  )
+
+  if (chart.type === 'bar' && chart.data) return (
+    <div style={card}>
+      <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b6b6b' }}>Comparison</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: '#0a0a0a', margin: '4px 0 4px' }}>{fn(chart.title)}</div>
+      <div style={{ fontSize: 12, color: '#a8a8a8', marginBottom: 14 }}>Top categories ranked by value</div>
+      <ResponsiveContainer width="100%" height={220}>
+        <BarChart data={chart.data}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e8e8e8" vertical={false} />
+          <XAxis dataKey="x" tick={{ fontSize: 10, fill: '#a8a8a8' }} tickLine={false} axisLine={false}
+            angle={chart.data.length > 6 ? -30 : 0} textAnchor={chart.data.length > 6 ? 'end' : 'middle'}
+            height={chart.data.length > 6 ? 55 : 28} interval="preserveStartEnd" />
+          <YAxis tick={{ fontSize: 10, fill: '#a8a8a8' }} tickLine={false} axisLine={false} width={48} />
+          <Tooltip {...tt} />
+          <Bar dataKey="y" name="Value" radius={[4, 4, 0, 0]}>
+            {chart.data.map((_, i) => <Cell key={i} fill={i === 0 ? '#0a0a0a' : i < 3 ? '#3a3a3a' : '#a8a8a8'} />)}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  )
+
+  if (chart.type === 'histogram' && chart.data) return (
+    <div style={card}>
+      <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b6b6b' }}>Distribution</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: '#0a0a0a', margin: '4px 0 4px' }}>{fn(chart.title)}</div>
+      <div style={{ fontSize: 12, color: '#a8a8a8', marginBottom: 14 }}>How values are spread across ranges</div>
+      <ResponsiveContainer width="100%" height={200}>
+        <BarChart data={chart.data}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e8e8e8" vertical={false} />
+          <XAxis dataKey="x" tick={{ fontSize: 9, fill: '#a8a8a8' }} tickLine={false} axisLine={false} angle={-25} textAnchor="end" height={50} interval="preserveStartEnd" />
+          <YAxis tick={{ fontSize: 10, fill: '#a8a8a8' }} tickLine={false} axisLine={false} width={36} />
+          <Tooltip {...tt} />
+          <Bar dataKey="y" name="Count" fill="#6b6b6b" radius={[3, 3, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  )
+
+  if (chart.type === 'scatter' && chart.data) return (
+    <div style={card}>
+      <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b6b6b' }}>Relationship</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: '#0a0a0a', margin: '4px 0 4px' }}>{fn(chart.title)}</div>
+      <div style={{ fontSize: 12, color: '#a8a8a8', marginBottom: 14 }}>Each dot is one row — look for patterns</div>
+      <ResponsiveContainer width="100%" height={220}>
+        <ScatterChart>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e8e8e8" />
+          <XAxis dataKey="x" name={fn(chart.x_label ?? 'X')} tick={{ fontSize: 10, fill: '#a8a8a8' }} tickLine={false} axisLine={false} />
+          <YAxis dataKey="y" name={fn(chart.y_label ?? 'Y')} tick={{ fontSize: 10, fill: '#a8a8a8' }} tickLine={false} axisLine={false} width={48} />
+          <Tooltip cursor={{ strokeDasharray: '3 3' }} {...tt} />
+          <Scatter data={chart.data} fill="#0a0a0a" opacity={0.55} />
+        </ScatterChart>
+      </ResponsiveContainer>
+    </div>
+  )
+
+  if (chart.type === 'pie' && chart.data) return (
+    <div style={card}>
+      <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b6b6b' }}>Breakdown</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: '#0a0a0a', margin: '4px 0 14px' }}>{fn(chart.title)}</div>
+      <ResponsiveContainer width="100%" height={220}>
+        <PieChart>
+          <Pie data={chart.data} dataKey="y" nameKey="x" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+            {chart.data.map((_, i) => <Cell key={i} fill={GRAYS[i % GRAYS.length]} />)}
+          </Pie>
+          <Tooltip {...tt} />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+  )
+
+  if (chart.type === 'stacked_bar' && chart.categories && chart.series) {
+    const data = chart.categories.map((cat, i) => {
+      const row: Record<string, string | number> = { x: cat }
+      chart.series!.forEach(s => { row[s.name] = s.data[i] ?? 0 })
+      return row
+    })
     return (
       <div style={card}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)' }}>Trend</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginTop: 4 }}>{chart.title}</div>
-          </div>
-          <ChartBadge label="Time series" />
-        </div>
+        <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b6b6b' }}>Stacked comparison</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#0a0a0a', margin: '4px 0 14px' }}>{fn(chart.title)}</div>
         <ResponsiveContainer width="100%" height={240}>
-          <LineChart data={chart.data}>
-            <defs>
-              <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#6366f1"/>
-                <stop offset="100%" stopColor="#8b5cf6"/>
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-            <XAxis dataKey="x" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} tickLine={false} axisLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} tickLine={false} axisLine={false} width={42} />
-            <Tooltip {...tooltipStyle} />
-            <Line type="monotone" dataKey="y" stroke="url(#lineGrad)" strokeWidth={3} dot={false} />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-    )
-  }
-  if (chart.type === 'bar' && chart.data) {
-    return (
-      <div style={card}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)' }}>Distribution</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginTop: 4 }}>{chart.title}</div>
-          </div>
-          <ChartBadge label="Top 10" />
-        </div>
-        <ResponsiveContainer width="100%" height={240}>
-          <BarChart data={chart.data}>
-            <defs>
-              <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#6366f1"/>
-                <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.7}/>
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-            <XAxis dataKey="x" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} tickLine={false} axisLine={false} interval="preserveStartEnd" angle={chart.data && chart.data.length > 6 ? -35 : 0} textAnchor={chart.data && chart.data.length > 6 ? 'end' : 'middle'} height={chart.data && chart.data.length > 6 ? 60 : 30} />
-            <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} tickLine={false} axisLine={false} width={42} />
-            <Tooltip {...tooltipStyle} />
-            <Legend wrapperStyle={{ fontSize: 12, color: 'var(--text-muted)' }} />
-            <Bar dataKey="y" name="Value" fill="url(#barGrad)" radius={[6, 6, 0, 0]} />
+          <BarChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e8e8e8" vertical={false} />
+            <XAxis dataKey="x" tick={{ fontSize: 10, fill: '#a8a8a8' }} tickLine={false} axisLine={false} />
+            <YAxis tick={{ fontSize: 10, fill: '#a8a8a8' }} tickLine={false} axisLine={false} width={48} />
+            <Tooltip {...tt} />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            {chart.series.map((s, i) => (
+              <Bar key={s.name} dataKey={s.name} stackId="a" fill={GRAYS[i % GRAYS.length]} radius={i === chart.series!.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]} />
+            ))}
           </BarChart>
         </ResponsiveContainer>
       </div>
     )
   }
-  if (chart.type === 'top_bottom') {
-    return (
-      <div style={card}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)' }}>Ranking</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginTop: 4 }}>{chart.title}</div>
-          </div>
-          <ChartBadge label="Top / Bottom" />
+
+  if (chart.type === 'top_bottom') return (
+    <div style={card}>
+      <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b6b6b' }}>Rankings</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: '#0a0a0a', margin: '4px 0 4px' }}>{fn(chart.title)}</div>
+      <div style={{ fontSize: 12, color: '#a8a8a8', marginBottom: 14 }}>Best and worst performers</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }} className="ranking-grid">
+        <div style={{ borderRadius: 10, padding: 14, background: '#f0fdf4', border: '1.5px solid rgba(22,163,74,0.15)' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#16a34a', marginBottom: 10 }}>🏆 Top</div>
+          {chart.top?.map((t, i) => (
+            <div key={t.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid rgba(22,163,74,0.1)', fontSize: 13 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+                <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(22,163,74,0.15)', color: '#16a34a', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</span>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.label}</span>
+              </div>
+              <span className="font-mono-num" style={{ color: '#6b6b6b', flexShrink: 0, marginLeft: 8 }}>{t.value?.toLocaleString()}</span>
+            </div>
+          ))}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div style={{ borderRadius: 10, padding: 14, background: 'var(--good-light)', border: '1.5px solid rgba(16,185,129,0.15)' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--good)', marginBottom: 10 }}>Top performers</div>
-            {chart.top?.map((t, i) => (
-              <div key={t.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid rgba(16,185,129,0.1)', fontSize: 13 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                  <span style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(16,185,129,0.15)', color: 'var(--good)', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</span>
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text)' }}>{t.label}</span>
-                </div>
-                <span className="font-mono-num" style={{ color: 'var(--text-muted)', flexShrink: 0, marginLeft: 8 }}>{t.value?.toLocaleString()}</span>
+        <div style={{ borderRadius: 10, padding: 14, background: '#fef2f2', border: '1.5px solid rgba(220,38,38,0.15)' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#dc2626', marginBottom: 10 }}>⚠️ Bottom</div>
+          {[...(chart.bottom ?? [])].reverse().map((t, i) => (
+            <div key={t.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid rgba(220,38,38,0.1)', fontSize: 13 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+                <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(220,38,38,0.12)', color: '#dc2626', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</span>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.label}</span>
               </div>
-            ))}
-          </div>
-          <div style={{ borderRadius: 10, padding: 14, background: 'var(--bad-light)', border: '1.5px solid rgba(239,68,68,0.15)' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--bad)', marginBottom: 10 }}>Bottom performers</div>
-            {[...(chart.bottom ?? [])].reverse().map((t, i) => (
-              <div key={t.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid rgba(239,68,68,0.1)', fontSize: 13 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                  <span style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(239,68,68,0.12)', color: 'var(--bad)', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</span>
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text)' }}>{t.label}</span>
-                </div>
-                <span className="font-mono-num" style={{ color: 'var(--text-muted)', flexShrink: 0, marginLeft: 8 }}>{t.value?.toLocaleString()}</span>
-              </div>
-            ))}
-          </div>
+              <span className="font-mono-num" style={{ color: '#6b6b6b', flexShrink: 0, marginLeft: 8 }}>{t.value?.toLocaleString()}</span>
+            </div>
+          ))}
         </div>
       </div>
-    )
-  }
+    </div>
+  )
+
   return null
 }
 
-function DataQualityPanel({ config }: { config: DashboardConfig }) {
+/* ── Predictions panel ── */
+function PredictionsPanel({ p }: { p: Prediction }) {
+  if (p.error) return (
+    <div style={{ ...card, marginBottom: 32, color: '#6b6b6b', fontSize: 13 }}>Predictions unavailable: {p.error}</div>
+  )
   return (
     <div style={{ ...card, marginBottom: 32 }}>
-      <SectionTitle title="Data quality & anomalies" subtitle="Issues that may affect confidence in this dashboard." />
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-        {[
-          { label: `${config.data_quality.row_count} rows`, color: 'var(--accent)', bg: 'var(--accent-light)' },
-          { label: `${config.data_quality.duplicate_row_count} duplicates`, color: '#d97706', bg: 'var(--warn-light)' },
-          { label: `${config.data_quality.columns_with_missing.length} cols with missing`, color: 'var(--text-muted)', bg: 'var(--bg-subtle)' },
-        ].map((b) => (
-          <span key={b.label} style={{ fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20, color: b.color, background: b.bg }}>
-            {b.label}
-          </span>
-        ))}
+      <div style={{ fontSize: 15, fontWeight: 700, color: '#0a0a0a', marginBottom: 4 }}>
+        {p.model_type === 'clustering' ? '🔍 Cluster analysis' : p.model_type === 'classification' ? '🎯 Classification model' : '📈 Regression model'}
       </div>
-      {config.anomalies.length === 0 ? (
-        <div style={{ padding: '12px 16px', borderRadius: 10, background: 'var(--good-light)', color: 'var(--good)', fontSize: 13, fontWeight: 600, border: '1.5px solid rgba(16,185,129,0.2)' }}>
-          ✓ No significant anomalies detected.
+      <div style={{ fontSize: 12, color: '#6b6b6b', marginBottom: 16 }}>{p.algorithm}</div>
+
+      {p.insight && (
+        <div style={{ padding: '12px 14px', borderRadius: 10, background: '#f9f9f9', border: '1.5px solid #e8e8e8', fontSize: 13, color: '#0a0a0a', marginBottom: 16, lineHeight: 1.6 }}>
+          {p.insight}
         </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {config.anomalies.map((a, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 10, background: 'var(--bg-subtle)', border: '1.5px solid var(--border)' }}>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--bad)' }}>{a.type}</div>
-                {a.column && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{a.column}</div>}
+      )}
+
+      {/* accuracy / r2 */}
+      {p.accuracy_pct !== undefined && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <span style={{ fontSize: 13, fontWeight: 600 }}>Prediction accuracy</span>
+            <span className="font-mono-num" style={{ fontSize: 13, fontWeight: 700, color: p.accuracy_pct >= 70 ? '#16a34a' : '#ca8a04' }}>{p.accuracy_pct}%</span>
+          </div>
+          <div style={{ height: 6, background: '#f3f3f3', borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${p.accuracy_pct}%`, background: p.accuracy_pct >= 70 ? '#16a34a' : '#ca8a04', borderRadius: 6, transition: 'width 0.6s ease' }} />
+          </div>
+        </div>
+      )}
+      {p.r2_pct !== undefined && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <span style={{ fontSize: 13, fontWeight: 600 }}>Variance explained (R²)</span>
+            <span className="font-mono-num" style={{ fontSize: 13, fontWeight: 700, color: p.r2_pct >= 60 ? '#16a34a' : '#ca8a04' }}>{p.r2_pct}%</span>
+          </div>
+          <div style={{ height: 6, background: '#f3f3f3', borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${p.r2_pct}%`, background: p.r2_pct >= 60 ? '#16a34a' : '#ca8a04', borderRadius: 6, transition: 'width 0.6s ease' }} />
+          </div>
+        </div>
+      )}
+
+      {/* feature importance */}
+      {p.feature_importance && p.feature_importance.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>What drives the prediction</div>
+          {p.feature_importance.map((f, i) => (
+            <div key={f.feature} style={{ marginBottom: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
+                <span style={{ color: '#0a0a0a' }}>{fn(f.feature)}</span>
+                <span className="font-mono-num" style={{ color: '#6b6b6b' }}>{(f.importance * 100).toFixed(1)}%</span>
               </div>
-              <span className="font-mono-num" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{a.count ?? a.value}</span>
+              <div style={{ height: 4, background: '#f3f3f3', borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${f.importance * 100}%`, background: i === 0 ? '#0a0a0a' : '#a8a8a8', borderRadius: 4 }} />
+              </div>
             </div>
           ))}
         </div>
       )}
-      {config.correlations.length > 0 && (
-        <>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', margin: '20px 0 10px' }}>Correlations</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {config.correlations.map((c, i) => (
-              <div key={i} className="font-mono-num" style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 10, background: 'var(--bg-subtle)', border: '1.5px solid var(--border)', fontSize: 13 }}>
-                <span style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 12 }}>{c.field_a} ↔ {c.field_b}</span>
-                <span style={{ color: 'var(--accent)', fontWeight: 700, flexShrink: 0 }}>r = {c.correlation}</span>
+
+      {/* cluster sizes */}
+      {p.cluster_sizes && (
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Groups found in your data</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {p.cluster_sizes.map((c, i) => (
+              <div key={c.cluster} style={{ padding: '8px 14px', borderRadius: 10, background: '#f3f3f3', border: '1.5px solid #e8e8e8', textAlign: 'center' }}>
+                <div style={{ fontSize: 11, color: '#6b6b6b', fontWeight: 600 }}>{c.cluster}</div>
+                <div className="font-mono-num" style={{ fontSize: 18, fontWeight: 800, color: '#0a0a0a' }}>{c.count.toLocaleString()}</div>
+                <div style={{ fontSize: 10, color: '#a8a8a8' }}>rows</div>
               </div>
             ))}
           </div>
-        </>
+        </div>
+      )}
+
+      {/* sample predictions */}
+      {p.sample_predictions && p.sample_predictions.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Sample predictions vs actual</div>
+          <div style={{ overflowX: 'auto', borderRadius: 10, border: '1.5px solid #e8e8e8' }}>
+            <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
+              <thead style={{ background: '#f9f9f9' }}>
+                <tr>
+                  <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, color: '#6b6b6b', borderBottom: '1.5px solid #e8e8e8' }}>Actual</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, color: '#6b6b6b', borderBottom: '1.5px solid #e8e8e8' }}>Predicted</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, color: '#6b6b6b', borderBottom: '1.5px solid #e8e8e8' }}>Difference</th>
+                </tr>
+              </thead>
+              <tbody>
+                {p.sample_predictions.map((r, i) => {
+                  const diff = Math.abs(r.actual - r.predicted)
+                  const pct  = r.actual !== 0 ? (diff / Math.abs(r.actual) * 100).toFixed(1) : '—'
+                  return (
+                    <tr key={i} style={{ borderTop: '1px solid #e8e8e8' }}>
+                      <td className="font-mono-num" style={{ padding: '7px 12px' }}>{r.actual.toLocaleString()}</td>
+                      <td className="font-mono-num" style={{ padding: '7px 12px' }}>{r.predicted.toLocaleString()}</td>
+                      <td className="font-mono-num" style={{ padding: '7px 12px', color: '#6b6b6b' }}>{pct}%</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
     </div>
   )
 }
 
-type PreviewData = {
-  original_filename: string
-  columns: string[]
-  rows: Array<Record<string, unknown>>
-  row_count: number
+/* ── Data quality ── */
+function DataQualityPanel({ config }: { config: DashboardConfig }) {
+  const dq = config.data_quality
+  return (
+    <div style={{ ...card, marginBottom: 32 }}>
+      <div style={{ fontSize: 15, fontWeight: 700, color: '#0a0a0a', marginBottom: 4 }}>Data health check</div>
+      <div style={{ fontSize: 13, color: '#6b6b6b', marginBottom: 16 }}>Issues that could affect dashboard accuracy.</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+        <Pill color="#0a0a0a" bg="#f3f3f3">{dq.row_count.toLocaleString()} rows</Pill>
+        {dq.duplicate_row_count > 0 ? <Pill color="#92400e" bg="#fffbeb">⚠ {dq.duplicate_row_count} duplicates</Pill> : <Pill color="#16a34a" bg="#f0fdf4">✓ No duplicates</Pill>}
+        {dq.columns_with_missing.length > 0 ? <Pill color="#92400e" bg="#fffbeb">⚠ {dq.columns_with_missing.length} cols with gaps</Pill> : <Pill color="#16a34a" bg="#f0fdf4">✓ No missing values</Pill>}
+      </div>
+      {config.anomalies.length === 0 ? (
+        <div style={{ padding: '12px 14px', borderRadius: 10, background: '#f0fdf4', color: '#16a34a', fontSize: 13, fontWeight: 600, border: '1.5px solid rgba(22,163,74,0.2)' }}>✓ No issues detected — data looks clean.</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {config.anomalies.map((a, i) => (
+            <div key={i} style={{ padding: '11px 14px', borderRadius: 10, background: '#f9f9f9', border: '1.5px solid #e8e8e8', fontSize: 13, lineHeight: 1.5 }}>
+              {anomalyMsg(a.type, a.column, a.count, a.value)}
+            </div>
+          ))}
+        </div>
+      )}
+      {config.correlations.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Column relationships</div>
+          <div style={{ fontSize: 12, color: '#6b6b6b', marginBottom: 12 }}>When two columns are correlated, one tends to predict the other.</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {config.correlations.map((c, i) => {
+              const { text, color } = corrLabel(c.correlation)
+              const pct = Math.round(Math.abs(c.correlation) * 100)
+              return (
+                <div key={i} style={{ padding: '12px 14px', borderRadius: 10, background: '#f9f9f9', border: '1.5px solid #e8e8e8' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>{fn(c.field_a)} ↔ {fn(c.field_b)}</span>
+                    <span className="font-mono-num" style={{ fontSize: 12, fontWeight: 700, color }}>{pct}%</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: '#6b6b6b', marginBottom: 6 }}>{text}</div>
+                  <div style={{ height: 4, background: '#e8e8e8', borderRadius: 4, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 4 }} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
+function Pill({ color, bg, children }: { color: string; bg: string; children: React.ReactNode }) {
+  return <span style={{ fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20, color, background: bg }}>{children}</span>
+}
+
+/* ── Preview table ── */
+type PreviewData = { original_filename: string; columns: string[]; rows: Array<Record<string, unknown>>; row_count: number }
 function PreviewTable({ preview }: { preview: PreviewData }) {
   return (
     <div style={{ ...card, marginTop: 20 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)' }}>Preview</div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginTop: 4 }}>{preview.original_filename}</div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{preview.row_count} rows total · showing first {preview.rows.length}</div>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b6b6b' }}>Raw data preview</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#0a0a0a', marginTop: 4 }}>{preview.original_filename}</div>
+          <div style={{ fontSize: 12, color: '#6b6b6b', marginTop: 2 }}>{preview.row_count.toLocaleString()} rows · showing first {preview.rows.length}</div>
         </div>
-        <span style={{ fontSize: 11, fontWeight: 600, padding: '4px 12px', borderRadius: 20, background: 'var(--bg-subtle)', color: 'var(--text-muted)' }}>Read-only</span>
+        <span style={{ fontSize: 11, fontWeight: 600, padding: '4px 12px', borderRadius: 20, background: '#f3f3f3', color: '#6b6b6b' }}>Read-only</span>
       </div>
-      <div style={{ overflowX: 'auto', borderRadius: 10, border: '1.5px solid var(--border)' }}>
+      <div style={{ overflowX: 'auto', borderRadius: 10, border: '1.5px solid #e8e8e8' }}>
         <table style={{ minWidth: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
-          <thead style={{ background: 'var(--bg-subtle)' }}>
-            <tr>
-              {preview.columns.map((col) => (
-                <th key={col} style={{ textAlign: 'left', padding: '10px 14px', fontWeight: 700, color: 'var(--text-muted)', whiteSpace: 'nowrap', borderBottom: '1.5px solid var(--border)' }}>
-                  {col}
-                </th>
-              ))}
-            </tr>
+          <thead style={{ background: '#f9f9f9' }}>
+            <tr>{preview.columns.map(col => <th key={col} style={{ textAlign: 'left', padding: '9px 13px', fontWeight: 700, color: '#6b6b6b', whiteSpace: 'nowrap', borderBottom: '1.5px solid #e8e8e8' }}>{fn(col)}</th>)}</tr>
           </thead>
           <tbody>
             {preview.rows.map((row, ri) => (
-              <tr key={ri} style={{ borderTop: '1px solid var(--border)' }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-subtle)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-              >
-                {preview.columns.map((col) => (
-                  <td key={col} style={{ padding: '9px 14px', whiteSpace: 'nowrap', color: 'var(--text)' }}>
-                    {String(row[col] ?? '')}
-                  </td>
-                ))}
+              <tr key={ri} style={{ borderTop: '1px solid #e8e8e8' }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#f9f9f9')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                {preview.columns.map(col => <td key={col} style={{ padding: '8px 13px', whiteSpace: 'nowrap', color: '#0a0a0a' }}>{String(row[col] ?? '')}</td>)}
               </tr>
             ))}
           </tbody>
@@ -272,10 +432,63 @@ function PreviewTable({ preview }: { preview: PreviewData }) {
   )
 }
 
+/* ── Export button ── */
+function ExportBtn({ datasetId }: { datasetId: string }) {
+  const [open, setOpen] = useState(false)
+  const [rect, setRect] = useState<DOMRect | null>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const base = (import.meta.env.VITE_API_URL || '/api') + `/dashboards/by-dataset/${datasetId}/export`
+  const opts = [
+    { label: 'JSON', fmt: 'json', desc: 'Raw data for developers' },
+    { label: 'CSV',  fmt: 'csv',  desc: 'Open in Excel / Sheets' },
+    { label: 'HTML', fmt: 'html', desc: 'Printable report' },
+  ]
+
+  function toggle() {
+    if (!open && btnRef.current) setRect(btnRef.current.getBoundingClientRect())
+    setOpen(o => !o)
+  }
+
+  useEffect(() => {
+    if (!open) return
+    const close = () => setOpen(false)
+    window.addEventListener('click', close)
+    return () => window.removeEventListener('click', close)
+  }, [open])
+
+  return (
+    <>
+      <button ref={btnRef} onClick={e => { e.stopPropagation(); toggle() }}
+        style={{ fontSize: 13, fontWeight: 600, padding: '8px 18px', borderRadius: 8, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+        Export
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+      {open && rect && (
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{ position: 'fixed', top: rect.bottom + 6, right: window.innerWidth - rect.right, background: '#fff', borderRadius: 12, border: '1.5px solid #e8e8e8', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', overflow: 'hidden', zIndex: 9999, minWidth: 190 }}>
+          {opts.map(o => (
+            <a key={o.fmt} href={`${base}?fmt=${o.fmt}`} download onClick={() => setOpen(false)}
+              style={{ display: 'block', padding: '11px 16px', textDecoration: 'none', borderBottom: '1px solid #f3f3f3' }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#f9f9f9')}
+              onMouseLeave={e => (e.currentTarget.style.background = '#fff')}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#0a0a0a' }}>{o.label}</div>
+              <div style={{ fontSize: 11, color: '#6b6b6b' }}>{o.desc}</div>
+            </a>
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
+/* ── Page ── */
 export default function DatasetDetailPage() {
   const { id } = useParams()
-  const [title, setTitle] = useState('')
-  const [config, setConfig] = useState<DashboardConfig | null>(null)
+  const [title, setTitle]     = useState('')
+  const [config, setConfig]   = useState<DashboardConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [notReady, setNotReady] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
@@ -284,86 +497,86 @@ export default function DatasetDetailPage() {
 
   useEffect(() => {
     api.get(`/dashboards/by-dataset/${id}`)
-      .then((r) => { setTitle(r.data.title); setConfig(r.data.config) })
+      .then(r => { setTitle(r.data.title); setConfig(r.data.config) })
       .catch(() => setNotReady(true))
       .finally(() => setLoading(false))
   }, [id])
 
   async function loadPreview() {
     if (!id) return
-    if (preview) { setShowPreview((v) => !v); return }
+    if (preview) { setShowPreview(true); return }
     setPreviewLoading(true)
-    try {
-      const { data } = await api.get(`/datasets/${id}/preview`)
-      setPreview(data); setShowPreview(true)
-    } finally {
-      setPreviewLoading(false)
-    }
+    try { const { data } = await api.get(`/datasets/${id}/preview`); setPreview(data); setShowPreview(true) }
+    finally { setPreviewLoading(false) }
   }
 
   return (
     <Shell>
-      {loading && <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>Loading dashboard…</div>}
-      {notReady && <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>No dashboard available for this dataset yet.</div>}
+      {loading && <div style={{ fontSize: 14, color: '#6b6b6b' }}>Loading dashboard…</div>}
+      {notReady && <div style={{ padding: '16px 20px', borderRadius: 12, background: '#fffbeb', border: '1.5px solid rgba(202,138,4,0.2)', fontSize: 14, color: '#92400e' }}>Dashboard is still generating — check back in a moment.</div>}
       {config && (
         <>
           {/* Hero */}
-          <div style={{
-            borderRadius: 16, padding: '28px 32px', marginBottom: 32,
-            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 60%, #a78bfa 100%)',
-            boxShadow: '0 8px 40px rgba(99,102,241,0.3)',
-            position: 'relative', overflow: 'hidden',
-          }}>
-            <div style={{ position: 'absolute', top: -60, right: -60, width: 260, height: 260, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', pointerEvents: 'none' }} />
-            <div style={{ position: 'absolute', bottom: -40, left: 100, width: 180, height: 180, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, justifyContent: 'space-between', alignItems: 'flex-end', position: 'relative' }}>
+          <div style={{ borderRadius: 16, padding: '28px 32px', marginBottom: 24, background: '#0a0a0a', position: 'relative', overflow: 'hidden' }} className="hero-card">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, justifyContent: 'space-between', alignItems: 'flex-end' }}>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'rgba(255,255,255,0.65)', marginBottom: 8 }}>
-                  Auto-generated dashboard
-                </div>
-                <h1 style={{ fontSize: 26, fontWeight: 800, color: '#fff', margin: 0 }}>{title}</h1>
-                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 8, maxWidth: 520 }}>
-                  One uploaded dataset powers this dashboard, its analytical answers, and future prediction runs.
-                </p>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>Auto-generated dashboard</div>
+                <h1 style={{ fontSize: 22, fontWeight: 800, color: '#fff', margin: 0 }} className="hero-title">{title}</h1>
+                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 8, maxWidth: 480 }}>Numbers calculated directly from your file — not guessed.</p>
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
-                {[{ label: 'Charts', value: config.charts.length }, { label: 'KPIs', value: config.kpi_cards.length }].map((s) => (
-                  <div key={s.label} style={{ borderRadius: 12, padding: '12px 20px', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', textAlign: 'center', border: '1px solid rgba(255,255,255,0.2)' }}>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{s.label}</div>
-                    <div className="font-mono-num" style={{ fontSize: 24, fontWeight: 800, color: '#fff', marginTop: 4 }}>{s.value}</div>
+                {[{ label: 'Charts', value: config.charts.length }, { label: 'KPIs', value: config.kpi_cards.length }].map(s => (
+                  <div key={s.label} style={{ borderRadius: 12, padding: '10px 18px', background: 'rgba(255,255,255,0.08)', textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{s.label}</div>
+                    <div className="font-mono-num" style={{ fontSize: 22, fontWeight: 800, color: '#fff', marginTop: 2 }}>{s.value}</div>
                   </div>
                 ))}
               </div>
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 20, alignItems: 'center', position: 'relative' }}>
-              <button
-                onClick={loadPreview}
-                style={{ fontSize: 13, fontWeight: 600, padding: '8px 18px', borderRadius: 8, background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', cursor: 'pointer', backdropFilter: 'blur(8px)', transition: 'background 0.15s' }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.3)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.2)')}
-              >
-                {previewLoading ? 'Loading…' : showPreview ? 'Hide preview' : 'Preview data'}
+            <div style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>
+              <button onClick={loadPreview}
+                style={{ fontSize: 13, fontWeight: 600, padding: '8px 18px', borderRadius: 8, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', cursor: 'pointer' }}>
+                {previewLoading ? 'Loading…' : 'Preview raw data'}
               </button>
-              {['Dataset-linked', 'Model-ready'].map((tag) => (
-                <span key={tag} style={{ fontSize: 12, fontWeight: 500, padding: '5px 14px', borderRadius: 20, background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.2)' }}>
-                  {tag}
-                </span>
-              ))}
+              {id && <ExportBtn datasetId={id} />}
             </div>
           </div>
 
-          <SectionTitle title="Key metrics" subtitle="High-signal numbers extracted from your upload." />
+          {/* Labeled/unlabeled banner */}
+          {config.data_structure && <StructureBanner ds={config.data_structure} />}
+
+          {/* KPIs */}
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#0a0a0a', marginBottom: 12 }}>Key numbers</div>
           <KpiCards config={config} />
 
-          <SectionTitle title="Visual analysis" subtitle="Charts automatically selected from the structure of the uploaded file." />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(440px, 1fr))', gap: 16, marginBottom: 32 }}>
+          {/* Charts */}
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#0a0a0a', marginBottom: 4 }}>Visual breakdown</div>
+          <div style={{ fontSize: 12, color: '#6b6b6b', marginBottom: 16 }}>Charts chosen automatically based on your data structure.</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(420px,1fr))', gap: 16, marginBottom: 32 }} className="chart-grid">
             {config.charts.map((c, i) => <Chart key={i} chart={c} />)}
           </div>
 
-          <SectionTitle title="Data quality" subtitle="Anomalies and correlations that deserve a closer look." />
+          {/* Predictions */}
+          {config.predictions && !config.predictions.error && (
+            <>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#0a0a0a', marginBottom: 12 }}>ML predictions</div>
+              <PredictionsPanel p={config.predictions} />
+            </>
+          )}
+
+          {/* Data quality */}
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#0a0a0a', marginBottom: 12 }}>Data health</div>
           <DataQualityPanel config={config} />
 
-          {showPreview && preview && <PreviewTable preview={preview} />}
+          {/* Preview modal */}
+          {showPreview && preview && (
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+              <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 1000, maxHeight: '90vh', overflowY: 'auto', position: 'relative', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }} className="preview-modal">
+                <button onClick={() => setShowPreview(false)} style={{ position: 'absolute', top: 16, right: 16, border: 'none', background: '#f3f3f3', cursor: 'pointer', color: '#0a0a0a', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, fontSize: 16 }}>✕</button>
+                <div style={{ padding: 24 }}><PreviewTable preview={preview} /></div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </Shell>

@@ -4,7 +4,7 @@ import { useAuth } from '../features/auth/AuthContext'
 import { apiErrorMessage } from '../lib/api'
 
 const GoogleIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+  <svg width="15" height="15" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
     <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
     <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -12,13 +12,15 @@ const GoogleIcon = () => (
   </svg>
 )
 
-const GitHubIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="#0a0a0a" style={{ flexShrink: 0 }}>
+const GitHubIcon = ({ dark }: { dark?: boolean }) => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill={dark ? '#fff' : '#0a0a0a'} style={{ flexShrink: 0 }}>
     <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/>
   </svg>
 )
 
-export default function OAuthButtons() {
+interface Props { dark?: boolean }
+
+export default function OAuthButtons({ dark }: Props) {
   const { continueWithProvider, authError } = useAuth()
   const navigate = useNavigate()
   const [busy, setBusy] = useState<'google' | 'github' | null>(null)
@@ -37,41 +39,68 @@ export default function OAuthButtons() {
     }
   }
 
-  const btn: React.CSSProperties = {
-    flex: 1,
-    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+  const base: React.CSSProperties = dark ? {
+    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
     padding: '10px 14px', borderRadius: 10, fontSize: 13, fontWeight: 600,
-    border: '1.5px solid #e8e8e8',
-    background: '#ffffff',
-    color: '#0a0a0a',
-    transition: 'border-color 0.15s, background 0.15s',
+    border: '1px solid rgba(255,255,255,0.12)',
+    background: 'rgba(255,255,255,0.07)',
+    color: '#fff',
     cursor: 'pointer',
+    transition: 'background 0.2s, border-color 0.2s, transform 0.15s',
+  } : {
+    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+    padding: '10px 14px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+    border: '1.5px solid #e8e8e8', background: '#ffffff', color: '#0a0a0a',
+    cursor: 'pointer', transition: 'border-color 0.15s, background 0.15s',
   }
+
+  const hoverIn = dark
+    ? (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.currentTarget.style.background = 'rgba(255,255,255,0.13)'
+        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'
+        e.currentTarget.style.transform = 'translateY(-1px)'
+      }
+    : (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.currentTarget.style.borderColor = '#0a0a0a'
+        e.currentTarget.style.background = '#f9f9f9'
+      }
+
+  const hoverOut = dark
+    ? (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
+        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'
+        e.currentTarget.style.transform = 'translateY(0)'
+      }
+    : (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.currentTarget.style.borderColor = '#e8e8e8'
+        e.currentTarget.style.background = '#ffffff'
+      }
 
   return (
     <div>
       <div style={{ display: 'flex', gap: 10 }}>
         <button
           type="button" onClick={() => continueWith('google')} disabled={busy !== null}
-          style={{ ...btn, opacity: busy !== null ? 0.5 : 1 }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#0a0a0a'; e.currentTarget.style.background = '#f9f9f9' }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e8e8e8'; e.currentTarget.style.background = '#ffffff' }}
+          style={{ ...base, opacity: busy !== null ? 0.5 : 1 }}
+          onMouseEnter={hoverIn} onMouseLeave={hoverOut}
         >
           <GoogleIcon />
           {busy === 'google' ? 'Connecting…' : 'Google'}
         </button>
         <button
           type="button" onClick={() => continueWith('github')} disabled={busy !== null}
-          style={{ ...btn, opacity: busy !== null ? 0.5 : 1 }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#0a0a0a'; e.currentTarget.style.background = '#f9f9f9' }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e8e8e8'; e.currentTarget.style.background = '#ffffff' }}
+          style={{ ...base, opacity: busy !== null ? 0.5 : 1 }}
+          onMouseEnter={hoverIn} onMouseLeave={hoverOut}
         >
-          <GitHubIcon />
+          <GitHubIcon dark={dark} />
           {busy === 'github' ? 'Connecting…' : 'GitHub'}
         </button>
       </div>
       {(error || authError) && (
-        <div style={{ marginTop: 8, fontSize: 13, color: '#dc2626' }}>{authError || error}</div>
+        <div style={{
+          marginTop: 8, fontSize: 13,
+          color: dark ? '#fca5a5' : '#dc2626',
+        }}>{authError || error}</div>
       )}
     </div>
   )

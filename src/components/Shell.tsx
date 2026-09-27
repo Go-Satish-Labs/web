@@ -4,7 +4,7 @@ import { useAuth } from '../features/auth/AuthContext'
 
 const navItems = [
   {
-    to: '/',
+    to: '/datasets',
     label: 'Datasets',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -46,14 +46,11 @@ export default function Shell({ children }: { children: ReactNode }) {
       {/* ── Vertical tab rail ── */}
       <nav className="vtab-rail">
         {navItems.map((item) => {
-          const isActive = item.to === '/'
-            ? location.pathname === '/'
-            : location.pathname.startsWith(item.to)
+          const isActive = location.pathname.startsWith(item.to)
           return (
             <NavLink
               key={item.to}
               to={item.to}
-              end={item.to === '/'}
               className={`vtab${isActive ? ' active' : ''}`}
             >
               <span className="vtab-icon">{item.icon}</span>
@@ -65,6 +62,7 @@ export default function Shell({ children }: { children: ReactNode }) {
         {/* Sign out */}
         <button
           onClick={() => { logout(); navigate('/login') }}
+          onClick={() => { logout(); navigate('/') }}
           className="vtab"
           style={{ marginTop: 16, background: '#ffffff', border: '1.5px solid #e8e8e8', borderLeft: 'none' }}
           onMouseEnter={(e) => {
@@ -113,7 +111,7 @@ export default function Shell({ children }: { children: ReactNode }) {
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
             </svg>
           </div>
-          <span style={{ fontWeight: 700, fontSize: 14, color: '#0a0a0a' }}>Astrolytics</span>
+          <span style={{ fontWeight: 700, fontSize: 14, color: '#0a0a0a' }}>Analytrix</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -146,6 +144,38 @@ export default function Shell({ children }: { children: ReactNode }) {
           {children}
         </div>
       </main>
+
+      {/* ── Mobile bottom nav ── */}
+      <nav className="bottom-nav">
+        {navItems.map((item) => {
+          const isActive = location.pathname.startsWith(item.to)
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={`bn-item${isActive ? ' active' : ''}`}
+            >
+              <span className="vtab-icon">{item.icon}</span>
+              <span className="vtab-label">{item.label}</span>
+            </NavLink>
+          )
+        })}
+
+        <button
+          onClick={() => { logout(); navigate('/') }}
+          className="bn-item"
+          style={{ color: '#dc2626' }}
+        >
+          <span className="vtab-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </span>
+          <span className="vtab-label">Sign out</span>
+        </button>
+      </nav>
     </div>
   )
 }
