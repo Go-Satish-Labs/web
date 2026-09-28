@@ -12,10 +12,13 @@ type ModalMode = 'login' | 'register' | null
 
 export default function LandingPage() {
   const location = useLocation()
-  const [modal, setModal] = useState<ModalMode>(
-    (location.state as { modal?: ModalMode })?.modal ?? null
-  )
+  const routeModal = (location.state as { modal?: ModalMode } | null)?.modal ?? null
+  const [modal, setModal] = useState<ModalMode>(routeModal)
   const [closing, setClosing] = useState(false)
+
+  useEffect(() => {
+    if (routeModal) setModal(routeModal)
+  }, [routeModal])
 
   function openModal(m: 'login' | 'register') {
     setClosing(false)
