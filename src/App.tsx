@@ -5,6 +5,7 @@ import AskDataPage from './pages/AskDataPage'
 import BillingPage from './pages/BillingPage'
 import DatasetDetailPage from './pages/DatasetDetailPage'
 import DatasetsPage from './pages/DatasetsPage'
+import FeedbackPage from './pages/FeedbackPage'
 import LandingPage from './pages/LandingPage'
 
 function PublicHome() {
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="/datasets" element={<RequireAuth><DatasetsPage /></RequireAuth>} />
           <Route path="/datasets/:id" element={<RequireAuth><DatasetDetailPage /></RequireAuth>} />
           <Route path="/ask"      element={<RequireAuth><AskDataPage /></RequireAuth>} />
+          <Route path="/feedback" element={<RequireAuth><FeedbackPage /></RequireAuth>} />
           <Route path="/billing"  element={<RequireAuth><BillingPage /></RequireAuth>} />
           <Route path="*"         element={<Navigate to="/" replace />} />
         </Routes>

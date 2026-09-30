@@ -84,6 +84,23 @@ export interface Prediction {
   error?: string
 }
 
+export interface Feedback {
+  id: string
+  category: string
+  rating: number | null
+  message: string
+  status: string
+  created_at: string
+}
+
+export interface RetentionNotice {
+  retention_hours: number
+  window: string
+  headline: string
+  message: string
+  short: string
+}
+
 export interface AskInterpretation {
   intent: string
   metric: string | null
