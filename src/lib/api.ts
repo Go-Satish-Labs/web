@@ -71,10 +71,14 @@ export interface Prediction {
   accuracy_pct?: number
   r2_score?: number
   r2_pct?: number
+  mean_absolute_error?: number
   classes?: string[]
+  per_class?: { label: string; count: number; accuracy_pct: number }[]
+  n_clusters?: number
+  cluster_sizes?: { cluster: string; count: number }[]
+  cluster_profiles?: { cluster: string; notable: string[] }[]
   feature_importance?: { feature: string; importance: number }[]
   sample_predictions?: { actual: number; predicted: number }[]
-  cluster_sizes?: { cluster: string; count: number }[]
   insight?: string
   error?: string
 }
@@ -134,6 +138,26 @@ export interface AskResponse {
   interpretation: AskInterpretation | null
   forecast: Forecast | null
   engine: string
+}
+
+export interface PredictOptions {
+  is_labeled: boolean
+  suggested_target: string | null
+  suggested_mode: string
+  date_column: string | null
+  numeric_columns: string[]
+  categorical_columns: string[]
+  clusterable: boolean
+  summary: string
+  hint: string
+}
+
+export interface PredictRequest {
+  dataset_id: string
+  target: string | null
+  features: string[]
+  mode: string
+  n_clusters?: number
 }
 
 export interface DataStructure {

@@ -6,7 +6,8 @@ import {
   Tooltip, XAxis, YAxis, Legend,
 } from 'recharts'
 import Shell from '../components/Shell'
-import { api, type ChartSpec, type DashboardConfig, type Prediction, type DataStructure } from '../lib/api'
+import PredictionSetup from '../components/PredictionSetup'
+import { api, type ChartSpec, type DashboardConfig, type DataStructure } from '../lib/api'
 
 /* ── helpers ── */
 function fn(raw: string): string {
@@ -234,116 +235,6 @@ function Chart({ chart }: { chart: ChartSpec }) {
   return null
 }
 
-/* ── Predictions panel ── */
-function PredictionsPanel({ p }: { p: Prediction }) {
-  if (p.error) return (
-    <div style={{ ...card, marginBottom: 32, color: '#6b6b6b', fontSize: 13 }}>Predictions unavailable: {p.error}</div>
-  )
-  return (
-    <div style={{ ...card, marginBottom: 32 }}>
-      <div style={{ fontSize: 15, fontWeight: 700, color: '#0a0a0a', marginBottom: 4 }}>
-        {p.model_type === 'clustering' ? '🔍 Cluster analysis' : p.model_type === 'classification' ? '🎯 Classification model' : '📈 Regression model'}
-      </div>
-      <div style={{ fontSize: 12, color: '#6b6b6b', marginBottom: 16 }}>{p.algorithm}</div>
-
-      {p.insight && (
-        <div style={{ padding: '12px 14px', borderRadius: 10, background: '#f9f9f9', border: '1.5px solid #e8e8e8', fontSize: 13, color: '#0a0a0a', marginBottom: 16, lineHeight: 1.6 }}>
-          {p.insight}
-        </div>
-      )}
-
-      {/* accuracy / r2 */}
-      {p.accuracy_pct !== undefined && (
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 600 }}>Prediction accuracy</span>
-            <span className="font-mono-num" style={{ fontSize: 13, fontWeight: 700, color: p.accuracy_pct >= 70 ? '#16a34a' : '#ca8a04' }}>{p.accuracy_pct}%</span>
-          </div>
-          <div style={{ height: 6, background: '#f3f3f3', borderRadius: 6, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${p.accuracy_pct}%`, background: p.accuracy_pct >= 70 ? '#16a34a' : '#ca8a04', borderRadius: 6, transition: 'width 0.6s ease' }} />
-          </div>
-        </div>
-      )}
-      {p.r2_pct !== undefined && (
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 600 }}>Variance explained (R²)</span>
-            <span className="font-mono-num" style={{ fontSize: 13, fontWeight: 700, color: p.r2_pct >= 60 ? '#16a34a' : '#ca8a04' }}>{p.r2_pct}%</span>
-          </div>
-          <div style={{ height: 6, background: '#f3f3f3', borderRadius: 6, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${p.r2_pct}%`, background: p.r2_pct >= 60 ? '#16a34a' : '#ca8a04', borderRadius: 6, transition: 'width 0.6s ease' }} />
-          </div>
-        </div>
-      )}
-
-      {/* feature importance */}
-      {p.feature_importance && p.feature_importance.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>What drives the prediction</div>
-          {p.feature_importance.map((f, i) => (
-            <div key={f.feature} style={{ marginBottom: 8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
-                <span style={{ color: '#0a0a0a' }}>{fn(f.feature)}</span>
-                <span className="font-mono-num" style={{ color: '#6b6b6b' }}>{(f.importance * 100).toFixed(1)}%</span>
-              </div>
-              <div style={{ height: 4, background: '#f3f3f3', borderRadius: 4, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${f.importance * 100}%`, background: i === 0 ? '#0a0a0a' : '#a8a8a8', borderRadius: 4 }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* cluster sizes */}
-      {p.cluster_sizes && (
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Groups found in your data</div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {p.cluster_sizes.map((c) => (
-              <div key={c.cluster} style={{ padding: '8px 14px', borderRadius: 10, background: '#f3f3f3', border: '1.5px solid #e8e8e8', textAlign: 'center' }}>
-                <div style={{ fontSize: 11, color: '#6b6b6b', fontWeight: 600 }}>{c.cluster}</div>
-                <div className="font-mono-num" style={{ fontSize: 18, fontWeight: 800, color: '#0a0a0a' }}>{c.count.toLocaleString()}</div>
-                <div style={{ fontSize: 10, color: '#a8a8a8' }}>rows</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* sample predictions */}
-      {p.sample_predictions && p.sample_predictions.length > 0 && (
-        <div style={{ marginTop: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Sample predictions vs actual</div>
-          <div style={{ overflowX: 'auto', borderRadius: 10, border: '1.5px solid #e8e8e8' }}>
-            <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
-              <thead style={{ background: '#f9f9f9' }}>
-                <tr>
-                  <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, color: '#6b6b6b', borderBottom: '1.5px solid #e8e8e8' }}>Actual</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, color: '#6b6b6b', borderBottom: '1.5px solid #e8e8e8' }}>Predicted</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, color: '#6b6b6b', borderBottom: '1.5px solid #e8e8e8' }}>Difference</th>
-                </tr>
-              </thead>
-              <tbody>
-                {p.sample_predictions.map((r, i) => {
-                  const diff = Math.abs(r.actual - r.predicted)
-                  const pct  = r.actual !== 0 ? (diff / Math.abs(r.actual) * 100).toFixed(1) : '—'
-                  return (
-                    <tr key={i} style={{ borderTop: '1px solid #e8e8e8' }}>
-                      <td className="font-mono-num" style={{ padding: '7px 12px' }}>{r.actual.toLocaleString()}</td>
-                      <td className="font-mono-num" style={{ padding: '7px 12px' }}>{r.predicted.toLocaleString()}</td>
-                      <td className="font-mono-num" style={{ padding: '7px 12px', color: '#6b6b6b' }}>{pct}%</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
 /* ── Data quality ── */
 function DataQualityPanel({ config }: { config: DashboardConfig }) {
   const dq = config.data_quality
@@ -484,6 +375,42 @@ function ExportBtn({ datasetId }: { datasetId: string }) {
   )
 }
 
+/* ── History / Prediction toggle ── */
+type ViewMode = 'history' | 'prediction'
+
+/**
+ * Two views of the same file, with History as the default.
+ *
+ * History answers "what is in my data" and is always available. Prediction
+ * asks the user what to predict, because the engine's automatic choice of
+ * target is wrong often enough to be actively misleading.
+ */
+function ViewToggle({ mode, onChange }: { mode: ViewMode; onChange: (m: ViewMode) => void }) {
+  const options: { id: ViewMode; label: string; hint: string }[] = [
+    { id: 'history', label: 'What happened', hint: 'KPIs, charts and data health' },
+    { id: 'prediction', label: "What's likely next", hint: 'Choose what to predict' },
+  ]
+  return (
+    <div style={{ display: 'inline-flex', gap: 3, padding: 3, borderRadius: 10, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
+      {options.map(o => {
+        const active = mode === o.id
+        return (
+          <button key={o.id} onClick={() => onChange(o.id)} title={o.hint}
+            style={{
+              padding: '7px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
+              fontSize: 13, fontWeight: 700,
+              background: active ? '#fff' : 'transparent',
+              color: active ? '#0a0a0a' : 'rgba(255,255,255,0.65)',
+              transition: 'all 0.18s ease',
+            }}>
+            {o.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 /* ── Page ── */
 export default function DatasetDetailPage() {
   const { id } = useParams()
@@ -494,6 +421,7 @@ export default function DatasetDetailPage() {
   const [showPreview, setShowPreview] = useState(false)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [preview, setPreview] = useState<PreviewData | null>(null)
+  const [mode, setMode] = useState<ViewMode>('history')
 
   useEffect(() => {
     api.get(`/dashboards/by-dataset/${id}`)
@@ -533,7 +461,8 @@ export default function DatasetDetailPage() {
                 ))}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap', alignItems: 'center' }}>
+              <ViewToggle mode={mode} onChange={setMode} />
               <button onClick={loadPreview}
                 style={{ fontSize: 13, fontWeight: 600, padding: '8px 18px', borderRadius: 8, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', cursor: 'pointer' }}>
                 {previewLoading ? 'Loading…' : 'Preview raw data'}
@@ -542,31 +471,35 @@ export default function DatasetDetailPage() {
             </div>
           </div>
 
-          {/* Labeled/unlabeled banner */}
-          {config.data_structure && <StructureBanner ds={config.data_structure} />}
-
-          {/* KPIs */}
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#0a0a0a', marginBottom: 12 }}>Key numbers</div>
-          <KpiCards config={config} />
-
-          {/* Charts */}
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#0a0a0a', marginBottom: 4 }}>Visual breakdown</div>
-          <div style={{ fontSize: 12, color: '#6b6b6b', marginBottom: 16 }}>Charts chosen automatically based on your data structure.</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(420px,1fr))', gap: 16, marginBottom: 32 }} className="chart-grid">
-            {config.charts.map((c, i) => <Chart key={i} chart={c} />)}
-          </div>
-
-          {/* Predictions */}
-          {config.predictions && !config.predictions.error && (
+          {mode === 'history' ? (
             <>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#0a0a0a', marginBottom: 12 }}>ML predictions</div>
-              <PredictionsPanel p={config.predictions} />
+              {/* Labeled/unlabeled banner */}
+              {config.data_structure && <StructureBanner ds={config.data_structure} />}
+
+              {/* KPIs */}
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#0a0a0a', marginBottom: 12 }}>Key numbers</div>
+              <KpiCards config={config} />
+
+              {/* Charts */}
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#0a0a0a', marginBottom: 4 }}>Visual breakdown</div>
+              <div style={{ fontSize: 12, color: '#6b6b6b', marginBottom: 16 }}>Charts chosen automatically based on your data structure.</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(420px,1fr))', gap: 16, marginBottom: 32 }} className="chart-grid">
+                {config.charts.map((c, i) => <Chart key={i} chart={c} />)}
+              </div>
+
+              {/* Data quality */}
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#0a0a0a', marginBottom: 12 }}>Data health</div>
+              <DataQualityPanel config={config} />
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#0a0a0a', marginBottom: 4 }}>Prediction</div>
+              <div style={{ fontSize: 12, color: '#6b6b6b', marginBottom: 16 }}>
+                Tell the model what to predict. Every score it reports is measured on rows it did not train on.
+              </div>
+              {id && <PredictionSetup datasetId={id} />}
             </>
           )}
-
-          {/* Data quality */}
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#0a0a0a', marginBottom: 12 }}>Data health</div>
-          <DataQualityPanel config={config} />
 
           {/* Preview modal */}
           {showPreview && preview && (
