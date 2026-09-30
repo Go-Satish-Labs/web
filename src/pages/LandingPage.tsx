@@ -159,7 +159,10 @@ export default function LandingPage() {
 
       {/* ── Closing line ── */}
       <div className="landing-footer">
-        <p className="site-footer-copy">© Satish-Labs</p>
+        <p className="site-footer-line">
+          <span className="site-footer-copy">© Satish-Labs</span>
+          <span className="site-footer-tagline">The AI chats. The maths doesn&rsquo;t bluff.</span>
+        </p>
       </div>
 
       </div>

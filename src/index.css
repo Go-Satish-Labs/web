@@ -599,6 +599,23 @@ button { font-family: inherit; cursor: pointer; }
   font-weight: 600;
   color: var(--text-muted);
 }
+.site-footer-line {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.site-footer-line > * + *::before {
+  content: '·';
+  margin-right: 10px;
+  color: var(--text-subtle);
+}
+.site-footer-tagline {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
 
 /* Dark variant for the landing scene. */
 .landing-footer {
@@ -609,6 +626,8 @@ button { font-family: inherit; cursor: pointer; }
   padding: 32px 24px calc(40px + env(safe-area-inset-bottom, 0px));
 }
 .landing-footer .site-footer-copy { color: rgba(255,255,255,0.4); }
+.landing-footer .site-footer-tagline { color: rgba(255,255,255,0.3); }
+.landing-footer .site-footer-line > * + *::before { color: rgba(255,255,255,0.25); }
 
 /* ── Landing hero, narrow screens ── */
 /* The stat labels are the widest thing in the row; below 420px they wrap to
