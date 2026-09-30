@@ -2,9 +2,37 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Lightweight Analytics</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- Icons. The SVG is first so modern browsers use the sharp version and
+         fall back to the raster sizes for anything that cannot render it. -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="icon" href="/favicon-48.png" sizes="48x48" type="image/png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#863bff" />
+
+    <title>Analytrix</title>
+    <meta
+      name="description"
+      content="Upload a spreadsheet and get a dashboard, plain-language answers about your data, and predictions you can check."
+    />
+
+    <style>
+      /* Paint the brand colour before React mounts, so a slow bundle does not
+         flash the default white page on a dark-themed device. */
+      html { background: #0a0a0a; }
+      @media (prefers-color-scheme: light) { html { background: #ffffff; } }
+      #root:empty::after {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background: #0a0a0a;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

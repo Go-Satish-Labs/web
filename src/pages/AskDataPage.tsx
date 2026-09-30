@@ -74,7 +74,7 @@ export default function AskDataPage() {
           Upload and analyze a dataset first to start asking questions.
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 240px)', minHeight: 400 }}>
+        <div className="ask-layout" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 240px)', minHeight: 400 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 10, flexWrap: 'wrap' }}>
             <select value={datasetId} onChange={(e) => setDatasetId(e.target.value)}
               style={{ padding: '9px 14px', fontSize: 13, fontWeight: 500, borderRadius: 10, minWidth: 220 }}>

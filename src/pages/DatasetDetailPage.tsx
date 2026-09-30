@@ -500,7 +500,7 @@ export default function DatasetDetailPage() {
                 ))}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div className="hero-actions" style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap', alignItems: 'center' }}>
               <ViewToggle mode={mode} onChange={setMode} />
               <button onClick={loadPreview}
                 style={{ fontSize: 13, fontWeight: 600, padding: '8px 18px', borderRadius: 8, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', cursor: 'pointer' }}>

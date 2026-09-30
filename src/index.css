@@ -182,12 +182,16 @@ button { font-family: inherit; cursor: pointer; }
   position: fixed;
   bottom: 0; left: 0; right: 0;
   z-index: 100;
-  height: 64px;
+  /* env() keeps the bar clear of the iOS home indicator, which otherwise
+     overlaps the row of nav buttons. */
+  height: calc(64px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   background: #ffffff;
   border-top: 1.5px solid var(--border);
   align-items: center;
   justify-content: space-around;
-  padding: 0 8px;
+  padding-left: 8px;
+  padding-right: 8px;
   box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
 }
 
@@ -226,7 +230,14 @@ button { font-family: inherit; cursor: pointer; }
   /* Main content: full width, no left offset */
   main { paddingLeft: 0 !important; }
 
-  main > div { padding: 20px 16px !important; maxWidth: 100% !important; }
+  /* Clear the fixed bottom nav. Without this the last element of every page
+     sits underneath it and cannot be scrolled clear, because the nav is
+     position:fixed rather than part of the flow. */
+  main > div {
+    padding: 20px 16px !important;
+    padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important;
+    max-width: 100% !important;
+  }
 
   /* Forms: full width */
   .login-form-panel { width: 100% !important; padding: 24px 16px !important; }
@@ -263,6 +274,19 @@ button { font-family: inherit; cursor: pointer; }
   .ranking-grid { gridTemplateColumns: 1fr !important; }
 
   /* Table: horizontal scroll handled by overflowX:auto already */
+
+  /* The Ask page is a full-height chat that manages its own height, so it must
+     not also inherit the bottom-nav padding the other pages need. */
+  main > div:has(.ask-layout) { padding-bottom: 20px !important; }
+
+  /* 100vh is the *tallest* viewport, so on a phone with browser chrome the
+     composer ended up behind the fixed bottom nav. dvh tracks the viewport
+     actually visible right now, and 240px covers header + dataset picker +
+     composer + the nav. */
+  .ask-layout {
+    height: calc(100dvh - 240px) !important;
+    min-height: 300px !important;
+  }
 }
 
 @media (max-width: 480px) {
@@ -491,4 +515,122 @@ button { font-family: inherit; cursor: pointer; }
   .rocket { width: 170px; height: 140px; }
   .rocket-box { padding: 22px 24px; }
   .rocket-status { font-size: 14px; }
+}
+
+/* ── Site footer ── */
+.site-footer {
+  border-top: 1px solid var(--border);
+  margin-top: 48px;
+  padding: 28px 0 8px;
+}
+.site-footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.site-footer-brand { display: flex; align-items: center; gap: 8px; }
+.site-footer-links { display: flex; align-items: center; gap: 6px; }
+.site-footer-links a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  color: var(--text-muted);
+  transition: color 0.15s, background 0.15s;
+}
+.site-footer-links a:hover { color: #0a0a0a; background: var(--bg-subtle); }
+.site-footer-note {
+  margin: 18px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  max-width: 62ch;
+}
+
+/* Dark variant for the landing scene. Reuses the same parts, so the footer
+   stays one component with one layout instead of two that can drift apart. */
+.landing-footer {
+  position: relative;
+  z-index: 2;
+  padding: 32px 24px calc(32px + env(safe-area-inset-bottom, 0px));
+  margin-top: 40px;
+}
+.landing-footer .site-footer-note { color: rgba(255,255,255,0.35); margin-top: 14px; }
+.landing-footer .site-footer-links a { color: rgba(255,255,255,0.45); }
+.landing-footer .site-footer-links a:hover { color: #fff; background: rgba(255,255,255,0.08); }
+
+/* ── Landing hero, narrow screens ── */
+/* The stat labels are the widest thing in the row; below 420px they wrap to
+   two lines each and stop being readable at 12px on a 300px-wide column. */
+@media (max-width: 420px) {
+  .hero-stats { gap: 8px !important; margin-top: 40px !important; padding-top: 24px !important; }
+  .hero-stat-label { font-size: 11px !important; line-height: 1.35; }
+}
+
+/* ── Generic narrow-screen guards ─────────────────────────────────────────
+   Elements that were fixed-width inline are given a hard break point here
+   rather than being made fluid everywhere, so the desktop layout stays as
+   designed and only genuinely too-small viewports are affected. */
+@media (max-width: 560px) {
+  /* The auth form and every modal panel have to clear the bottom nav and the
+     home-indicator inset on a phone. */
+  .auth-panel { max-height: calc(100vh - 140px); overflow-y: auto; }
+
+  /* Chart tooltips that anchor to a fixed width overflow a narrow viewport. */
+  .recharts-wrapper { max-width: 100%; }
+}
+
+@media (max-width: 440px) {
+  /* The header carries the wordmark on the left and the account chip on the
+     right. Below this the email pushes the row wider than the screen, so the
+     avatar alone stands in for it - the account is still one tap away. */
+  header .account-email { display: none !important; }
+  header .account-chip { padding: 5px !important; gap: 0 !important; }
+}
+
+/* The hero action row holds a two-way toggle plus three buttons. Wrapping is
+   enough on a tablet; on a phone each control should take a full row so none
+   of them is squeezed to an untappable sliver. */
+@media (max-width: 560px) {
+  .hero-actions { gap: 8px; }
+  .hero-actions > * { flex: 1 1 100%; }
+  .hero-actions > div:first-child { flex: 1 1 100%; }
+  .hero-actions > div:first-child button { flex: 1 1 0; }
+}
+
+/* Respect a user's reduced-motion preference. Several decorative animations
+   (pets, rocket, glow) are decorative only and safe to disable outright. */
+@media (prefers-reduced-motion: reduce) {
+  .virtual-pets,
+  .pet,
+  .pet-body,
+  .pet-emoji,
+  .pet-trail {
+    animation: none !important;
+  }
+  .rocket,
+  .rocket-box,
+  .rocket-status,
+  .moon,
+  .flame {
+    animation: none !important;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Coarse pointers get a larger tap target than a mouse needs. */
+@media (pointer: coarse) {
+  .vtab { min-height: 44px; }
+  .bottom-nav .bn-item { min-height: 52px; }
 }

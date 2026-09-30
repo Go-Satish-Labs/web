@@ -1,5 +1,7 @@
 import { type ReactNode } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
+import Logo from './Logo'
+import Footer from './Footer'
 import { useAuth } from '../features/auth/AuthContext'
 
 const navItems = [
@@ -115,16 +117,12 @@ export default function Shell({ children }: { children: ReactNode }) {
         borderBottom: '1.5px solid #e8e8e8',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 8, background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-            </svg>
-          </div>
+          <Logo size={28} />
           <span style={{ fontWeight: 700, fontSize: 14, color: '#0a0a0a' }}>Analytrix</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{
+          <div className="account-chip" style={{
             display: 'flex', alignItems: 'center', gap: 8,
             padding: '5px 12px 5px 6px', borderRadius: 20,
             background: '#f3f3f3', border: '1.5px solid #e8e8e8',
@@ -137,7 +135,7 @@ export default function Shell({ children }: { children: ReactNode }) {
             }}>
               {user?.email?.[0]?.toUpperCase() ?? 'U'}
             </div>
-            <span style={{ fontSize: 12, fontWeight: 500, color: '#6b6b6b', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <span className="account-email" style={{ fontSize: 12, fontWeight: 500, color: '#6b6b6b', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {user?.email}
             </span>
             {user?.plan === 'premium' && (
@@ -151,6 +149,7 @@ export default function Shell({ children }: { children: ReactNode }) {
       <main style={{ paddingLeft: 52 }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 40px' }}>
           {children}
+          <Footer />
         </div>
       </main>
 

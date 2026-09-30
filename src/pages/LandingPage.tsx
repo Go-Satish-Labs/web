@@ -4,6 +4,8 @@ import { Suspense, lazy } from 'react'
 import { useAuth } from '../features/auth/AuthContext'
 import { apiErrorMessage } from '../lib/api'
 import OAuthButtons from '../components/OAuthButtons'
+import Logo from '../components/Logo'
+import { SocialLinks } from '../components/Footer'
 import VirtualPets from '../components/VirtualPets'
 
 const AuthScene = lazy(() => import('../components/AuthScene'))
@@ -82,16 +84,7 @@ export default function LandingPage() {
         width: 'fit-content',
       }}>
         {/* logo */}
-        <div style={{
-          width: 28, height: 28, borderRadius: '50%',
-          background: '#ffffff',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          marginRight: 6,
-        }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-          </svg>
-        </div>
+        <Logo size={28} style={{ marginRight: 8 }} />
         <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginRight: 10, letterSpacing: '-0.2px' }}>
           Analytrix
         </span>
@@ -147,19 +140,38 @@ export default function LandingPage() {
         </div>
 
         {/* stats */}
-        <div style={{
-          display: 'flex', gap: 40, marginTop: 56,
+        {/* A fixed-gap flex row overflowed narrow phones and the scroll layer
+            clipped it, taking the headline with it. Three equal columns keep
+            all three on one row at any width. */}
+        <div className="hero-stats" style={{
+          display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+          gap: 16, marginTop: 56, width: '100%', maxWidth: 560,
           borderTop: '1px solid rgba(255,255,255,0.08)',
           paddingTop: 32,
         }}>
           {[['12k+', 'Datasets analyzed'], ['4.2s', 'Avg dashboard time'], ['98k+', 'AI questions answered']].map(([v, l]) => (
-            <div key={l} style={{ textAlign: 'center' }}>
+            <div key={l} style={{ textAlign: 'center', minWidth: 0 }}>
               <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '-0.5px' }}>{v}</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>{l}</div>
+              <div className="hero-stat-label" style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>{l}</div>
             </div>
           ))}
-        </div>
       </div>
+      </div>
+
+      {/* ── Footer (dark variant for the landing scene) ── */}
+      <div className="landing-footer">
+        <div className="site-footer-inner">
+          <div className="site-footer-brand">
+            <Logo size={22} />
+            <span style={{ fontWeight: 700, fontSize: 13, color: '#fff' }}>Analytrix</span>
+          </div>
+          <SocialLinks />
+        </div>
+        <p className="site-footer-note">
+          Numbers are calculated from your file. Files are deleted automatically.
+        </p>
+      </div>
+
       </div>
 
       {/* ── Modal backdrop ── */}
