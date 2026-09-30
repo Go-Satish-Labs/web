@@ -112,11 +112,18 @@ export default function FeedbackPage() {
             return (
               <button key={n} onClick={() => setRating(active ? null : n)}
                 title={RATING_LABEL[n]}
+                aria-pressed={active}
+                aria-label={`${n} out of 5 - ${RATING_LABEL[n]}`}
                 style={{
-                  width: 40, height: 40, borderRadius: 10, cursor: 'pointer', fontSize: 16,
+                  // Sized to content: a fixed width clipped the five-star glyph,
+                  // which is wider than the box it was given.
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  height: 40, minWidth: 46, padding: '0 12px',
+                  borderRadius: 10, cursor: 'pointer',
+                  fontSize: 14, lineHeight: 1, whiteSpace: 'nowrap', letterSpacing: 1,
                   border: `1.5px solid ${active ? '#0a0a0a' : '#e8e8e8'}`,
                   background: active ? '#0a0a0a' : '#fff',
-                  color: active ? '#fff' : '#6b6b6b',
+                  color: active ? '#fff' : '#9aa0a6',
                   transition: 'all 0.15s ease',
                 }}>
                 {'★'.repeat(n)}
