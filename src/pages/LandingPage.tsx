@@ -158,18 +158,22 @@ export default function LandingPage() {
       </div>
       </div>
 
-      {/* ── Footer (dark variant for the landing scene) ── */}
+      {/* ── Closing box ── */}
       <div className="landing-footer">
-        <div className="site-footer-inner">
-          <div className="site-footer-brand">
-            <Logo size={22} />
-            <span style={{ fontWeight: 700, fontSize: 13, color: '#fff' }}>Analytrix</span>
+        <div className="site-footer-card site-footer-card--dark">
+          <div className="site-footer-top">
+            <div className="site-footer-brand">
+              <Logo size={20} />
+              <span className="site-footer-name">Analytrix</span>
+            </div>
+            <SocialLinks />
           </div>
-          <SocialLinks />
+          <p className="site-footer-ai">
+            <strong>AI can make mistakes.</strong> Every number is calculated from your
+            file, but check anything important before acting on it.
+          </p>
+          <p className="site-footer-copy">© Satish-Labs</p>
         </div>
-        <p className="site-footer-note">
-          Numbers are calculated from your file. Files are deleted automatically.
-        </p>
       </div>
 
       </div>

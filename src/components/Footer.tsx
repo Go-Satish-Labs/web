@@ -1,12 +1,13 @@
 /**
- * Site footer with the brand mark and social links.
+ * The closing box at the foot of every page.
  *
- * The icons come from /icons.svg as a sprite via <use>, so the file is
- * requested once and cached rather than six times.
+ * Carries the two things a user needs to know before leaving: that the app
+ * can be wrong, and who built it. The AI disclaimer is stated plainly because
+ * the product does generate explanations, and a number nobody checks is a
+ * number nobody should act on.
  *
- * Only destinations that actually exist are rendered. Adding a link here
- * needs a real URL - a guessed handle is a dead link in a footer, which is
- * the most visible place in the product to ship one.
+ * The social icons come from /icons.svg as a sprite via <use>, so the file is
+ * requested once and cached rather than once per icon.
  */
 import Logo from './Logo'
 
@@ -31,6 +32,7 @@ export const SOCIAL_LINKS: SocialLink[] = [
 
 /** The social row on its own, so a page can place it in its own chrome. */
 export function SocialLinks() {
+  if (SOCIAL_LINKS.length === 0) return null
   return (
     <nav className="site-footer-links" aria-label="Social links">
       {SOCIAL_LINKS.map(link => (
@@ -56,17 +58,22 @@ export function SocialLinks() {
 export default function Footer() {
   return (
     <footer className="site-footer">
-      <div className="site-footer-inner">
-        <div className="site-footer-brand">
-          <Logo size={22} />
-          <span style={{ fontWeight: 700, fontSize: 13, color: '#0a0a0a' }}>Analytrix</span>
+      <div className="site-footer-card">
+        <div className="site-footer-top">
+          <div className="site-footer-brand">
+            <Logo size={20} />
+            <span className="site-footer-name">Analytrix</span>
+          </div>
+          <SocialLinks />
         </div>
-        <SocialLinks />
+
+        <p className="site-footer-ai">
+          <strong>AI can make mistakes.</strong> Every number is calculated from your
+          file, but check anything important before acting on it.
+        </p>
+
+        <p className="site-footer-copy">© Satish-Labs</p>
       </div>
-      <p className="site-footer-note">
-        Numbers are calculated from your file. Files are deleted automatically — see the
-        retention notice on your datasets page.
-      </p>
     </footer>
   )
 }

@@ -517,51 +517,72 @@ button { font-family: inherit; cursor: pointer; }
   .rocket-status { font-size: 14px; }
 }
 
-/* ── Site footer ── */
+/* ── Site footer: the closing box ── */
 .site-footer {
-  border-top: 1px solid var(--border);
-  margin-top: 48px;
-  padding: 28px 0 8px;
+  margin-top: 44px;
+  padding-bottom: 4px;
 }
-.site-footer-inner {
+.site-footer-card {
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-subtle);
+  padding: 18px 20px 16px;
+  max-width: 560px;
+}
+.site-footer-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 14px;
   flex-wrap: wrap;
 }
 .site-footer-brand { display: flex; align-items: center; gap: 8px; }
-.site-footer-links { display: flex; align-items: center; gap: 6px; }
+.site-footer-name { font-weight: 700; font-size: 13px; color: var(--text); }
+.site-footer-links { display: flex; align-items: center; gap: 4px; }
 .site-footer-links a {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: 9px;
   color: var(--text-muted);
   transition: color 0.15s, background 0.15s;
 }
-.site-footer-links a:hover { color: #0a0a0a; background: var(--bg-subtle); }
-.site-footer-note {
-  margin: 18px 0 0;
+.site-footer-links a:hover { color: var(--text); background: var(--bg-white); }
+.site-footer-ai {
+  margin: 14px 0 0;
   font-size: 12px;
-  color: var(--text-muted);
   line-height: 1.6;
-  max-width: 62ch;
+  color: var(--text-muted);
+}
+.site-footer-ai strong { color: var(--text); }
+.site-footer-copy {
+  margin: 12px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
 }
 
-/* Dark variant for the landing scene. Reuses the same parts, so the footer
+/* Dark variant for the landing scene. Reuses the same markup so the footer
    stays one component with one layout instead of two that can drift apart. */
 .landing-footer {
   position: relative;
   z-index: 2;
-  padding: 32px 24px calc(32px + env(safe-area-inset-bottom, 0px));
-  margin-top: 40px;
+  display: flex;
+  justify-content: center;
+  padding: 32px 24px calc(40px + env(safe-area-inset-bottom, 0px));
 }
-.landing-footer .site-footer-note { color: rgba(255,255,255,0.35); margin-top: 14px; }
-.landing-footer .site-footer-links a { color: rgba(255,255,255,0.45); }
-.landing-footer .site-footer-links a:hover { color: #fff; background: rgba(255,255,255,0.08); }
+.site-footer-card--dark {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.1);
+}
+.site-footer-card--dark .site-footer-name { color: #fff; }
+.site-footer-card--dark .site-footer-ai { color: rgba(255,255,255,0.45); }
+.site-footer-card--dark .site-footer-ai strong { color: rgba(255,255,255,0.75); }
+.site-footer-card--dark .site-footer-copy { color: rgba(255,255,255,0.5); }
+.site-footer-card--dark .site-footer-links a { color: rgba(255,255,255,0.45); }
+.site-footer-card--dark .site-footer-links a:hover { color: #fff; background: rgba(255,255,255,0.08); }
 
 /* ── Landing hero, narrow screens ── */
 /* The stat labels are the widest thing in the row; below 420px they wrap to
