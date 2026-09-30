@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import QuotaBar from '../components/QuotaBar'
 import RocketDialog from '../components/RocketDialog'
+import RetentionNotice, { RetentionTag } from '../components/RetentionNotice'
 import Shell from '../components/Shell'
 import { api, apiErrorMessage, type Dataset } from '../lib/api'
 
@@ -133,6 +134,9 @@ export default function DatasetsPage() {
 
       <QuotaBar />
 
+      {/* privacy notice - copy comes from the server so it matches the real window */}
+      <RetentionNotice />
+
       {/* duplicate warning */}
       {dupToast && (
         <div style={{
@@ -211,6 +215,7 @@ export default function DatasetsPage() {
 
                 {/* right: status + actions */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, marginLeft: 16 }}>
+                  <RetentionTag hours={d.hours_until_deletion} />
                   <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, color: s.color, background: s.bg, border: `1px solid ${s.border}` }}>
                     {s.label}
                   </span>

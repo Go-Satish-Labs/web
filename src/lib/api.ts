@@ -34,9 +34,10 @@ export interface Dataset {
   row_count: number
   column_count: number
   detected_category: string
-  status: string
-  error_message: string | null
+  status: 'uploaded' | 'profiled' | 'analyzed' | 'error'
+  error_message?: string | null
   created_at: string
+  hours_until_deletion?: number | null
 }
 
 export interface KpiCard {
