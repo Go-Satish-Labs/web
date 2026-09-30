@@ -50,6 +50,11 @@ export interface KpiCard {
   growth_pct?: number | null
 }
 
+export interface ChartReading {
+  purpose: string
+  takeaway: string
+}
+
 export interface ChartSpec {
   type: string
   title: string
@@ -60,6 +65,9 @@ export interface ChartSpec {
   y_label?: string
   categories?: string[]
   series?: { name: string; data: (number | null)[] }[]
+  /** Plain-language explanation computed by the server from the chart's own
+      numbers, so the wording cannot contradict the picture above it. */
+  reading?: ChartReading
 }
 
 export interface Prediction {

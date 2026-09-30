@@ -84,6 +84,34 @@ function KpiCards({ config }: { config: DashboardConfig }) {
   )
 }
 
+/* ── Plain-language reading under every chart ──
+   A reader who cannot interpret the shape still needs to learn what the chart
+   is for and what it says. Both sentences come from the server, computed off
+   the chart's own numbers, so they cannot drift from the picture. */
+function ChartReading({ chart }: { chart: ChartSpec }) {
+  const reading = chart.reading
+  if (!reading?.purpose && !reading?.takeaway) return null
+  return (
+    <div style={{
+      marginTop: 12, padding: '10px 12px', borderRadius: 10,
+      background: '#f8f9fa', border: '1px solid #eef0f2',
+    }}>
+      {reading.purpose && (
+        <div style={{ fontSize: 12, color: '#6b6b6b', lineHeight: 1.55, marginBottom: reading.takeaway ? 6 : 0 }}>
+          <span style={{ fontWeight: 700, color: '#0a0a0a' }}>What this shows: </span>
+          {reading.purpose}
+        </div>
+      )}
+      {reading.takeaway && (
+        <div style={{ fontSize: 12, color: '#0a0a0a', lineHeight: 1.55 }}>
+          <span style={{ fontWeight: 700 }}>What it says: </span>
+          {reading.takeaway}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* ── Charts ── */
 function Chart({ chart }: { chart: ChartSpec }) {
   if (chart.type === 'line' && chart.data) return (
@@ -100,6 +128,7 @@ function Chart({ chart }: { chart: ChartSpec }) {
           <Line type="monotone" dataKey="y" stroke="#0a0a0a" strokeWidth={2} dot={false} />
         </LineChart>
       </ResponsiveContainer>
+      <ChartReading chart={chart} />
     </div>
   )
 
@@ -121,6 +150,7 @@ function Chart({ chart }: { chart: ChartSpec }) {
           </Bar>
         </BarChart>
       </ResponsiveContainer>
+      <ChartReading chart={chart} />
     </div>
   )
 
@@ -138,6 +168,7 @@ function Chart({ chart }: { chart: ChartSpec }) {
           <Bar dataKey="y" name="Count" fill="#6b6b6b" radius={[3, 3, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
+      <ChartReading chart={chart} />
     </div>
   )
 
@@ -155,6 +186,7 @@ function Chart({ chart }: { chart: ChartSpec }) {
           <Scatter data={chart.data} fill="#0a0a0a" opacity={0.55} />
         </ScatterChart>
       </ResponsiveContainer>
+      <ChartReading chart={chart} />
     </div>
   )
 
@@ -170,6 +202,7 @@ function Chart({ chart }: { chart: ChartSpec }) {
           <Tooltip {...tt} />
         </PieChart>
       </ResponsiveContainer>
+      <ChartReading chart={chart} />
     </div>
   )
 
@@ -195,6 +228,7 @@ function Chart({ chart }: { chart: ChartSpec }) {
             ))}
           </BarChart>
         </ResponsiveContainer>
+        <ChartReading chart={chart} />
       </div>
     )
   }
@@ -230,6 +264,7 @@ function Chart({ chart }: { chart: ChartSpec }) {
           ))}
         </div>
       </div>
+      <ChartReading chart={chart} />
     </div>
   )
 
