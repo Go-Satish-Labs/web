@@ -7,7 +7,8 @@ import {
 } from 'recharts'
 import Shell from '../components/Shell'
 import PredictionSetup from '../components/PredictionSetup'
-import { api, type ChartSpec, type DashboardConfig, type DataStructure } from '../lib/api'
+import ShareButton from '../components/ShareButton'
+import { api, type ChartSpec, type DashboardConfig, type DataStructure, type Prediction } from '../lib/api'
 
 /* ── helpers ── */
 function fn(raw: string): string {
@@ -422,6 +423,9 @@ export default function DatasetDetailPage() {
   const [previewLoading, setPreviewLoading] = useState(false)
   const [preview, setPreview] = useState<PreviewData | null>(null)
   const [mode, setMode] = useState<ViewMode>('history')
+  // Lifted from PredictionSetup so the share button can publish exactly the
+  // prediction the user is looking at.
+  const [prediction, setPrediction] = useState<Prediction | null>(null)
 
   useEffect(() => {
     api.get(`/dashboards/by-dataset/${id}`)
@@ -468,6 +472,7 @@ export default function DatasetDetailPage() {
                 {previewLoading ? 'Loading…' : 'Preview raw data'}
               </button>
               {id && <ExportBtn datasetId={id} />}
+              {id && <ShareButton datasetId={id} mode={mode} prediction={prediction} />}
             </div>
           </div>
 
@@ -497,7 +502,7 @@ export default function DatasetDetailPage() {
               <div style={{ fontSize: 12, color: '#6b6b6b', marginBottom: 16 }}>
                 Tell the model what to predict. Every score it reports is measured on rows it did not train on.
               </div>
-              {id && <PredictionSetup datasetId={id} />}
+              {id && <PredictionSetup datasetId={id} onResult={setPrediction} />}
             </>
           )}
 

@@ -22,7 +22,10 @@ const GOALS = [
  * when the data has no obvious answer column rather than forcing a target the
  * file does not really have.
  */
-export default function PredictionSetup({ datasetId }: { datasetId: string }) {
+export default function PredictionSetup({ datasetId, onResult }: {
+  datasetId: string
+  onResult?: (p: Prediction | null) => void
+}) {
   const [options, setOptions] = useState<PredictOptions | null>(null)
   const [mode, setMode] = useState<string>('regression')
   const [target, setTarget] = useState<string>('')
@@ -68,6 +71,7 @@ export default function PredictionSetup({ datasetId }: { datasetId: string }) {
         n_clusters: mode === 'clustering' ? nClusters : undefined,
       })
       setResult(data.prediction)
+      onResult?.(data.prediction)
     } catch (e) {
       setError(apiErrorMessage(e))
     } finally { setBusy(false) }
@@ -186,7 +190,7 @@ export default function PredictionSetup({ datasetId }: { datasetId: string }) {
           {busy ? 'Running…' : 'Run prediction'}
         </button>
         {result && (
-          <button onClick={() => { setResult(null); setError('') }}
+          <button onClick={() => { setResult(null); onResult?.(null); setError('') }}
             style={{ padding: '11px 16px', borderRadius: 10, cursor: 'pointer', background: '#fff', color: '#0a0a0a', fontSize: 13, fontWeight: 600, border: '1.5px solid #e8e8e8' }}>
             Change columns
           </button>
