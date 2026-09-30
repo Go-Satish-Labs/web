@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from '../lib/api'
 
 interface Notice {
@@ -78,20 +78,56 @@ export default function RetentionNotice() {
   )
 }
 
-/** Per-row countdown, e.g. "deleted in 3h". */
+/**
+ * Per-row countdown, e.g. "deleted in 21h".
+ *
+ * Clicking it opens a short popover rather than leaving the tag inert: the
+ * tag is the one place a user is looking at a number this app produced, so
+ * that is where the "check it before you rely on it" caveat belongs. The
+ * popover is one short sentence by request - a paragraph here is the kind of
+ * text people skip, and skipped text protects nobody.
+ */
 export function RetentionTag({ hours }: { hours?: number | null }) {
+  const [open, setOpen] = useState(false)
+  const wrapRef = useRef<HTMLSpanElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
   if (hours === null || hours === undefined) return null
   const text = hours < 1
     ? 'deleting soon'
     : hours < 48
       ? `deleted in ${Math.round(hours)}h`
       : `deleted in ${Math.round(hours / 24)}d`
+
   return (
-    <span style={{
-      fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 999,
-      background: '#f3f4f6', color: '#6b7280', whiteSpace: 'nowrap',
-    }}>
-      {text}
+    <span ref={wrapRef} className="retention-wrap">
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setOpen(o => !o) }}
+        aria-expanded={open}
+        aria-label={`${text}. Tap for a note about AI results`}
+        className="retention-tag"
+      >
+        {text}
+      </button>
+      {open && (
+        <span className="retention-pop" role="status">
+          AI can make mistakes — check important numbers.
+        </span>
+      )}
     </span>
   )
 }

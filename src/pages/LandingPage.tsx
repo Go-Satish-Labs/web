@@ -5,7 +5,6 @@ import { useAuth } from '../features/auth/AuthContext'
 import { apiErrorMessage } from '../lib/api'
 import OAuthButtons from '../components/OAuthButtons'
 import Logo from '../components/Logo'
-import { SocialLinks } from '../components/Footer'
 import VirtualPets from '../components/VirtualPets'
 
 const AuthScene = lazy(() => import('../components/AuthScene'))
@@ -158,22 +157,9 @@ export default function LandingPage() {
       </div>
       </div>
 
-      {/* ── Closing box ── */}
+      {/* ── Closing line ── */}
       <div className="landing-footer">
-        <div className="site-footer-card site-footer-card--dark">
-          <div className="site-footer-top">
-            <div className="site-footer-brand">
-              <Logo size={20} />
-              <span className="site-footer-name">Analytrix</span>
-            </div>
-            <SocialLinks />
-          </div>
-          <p className="site-footer-ai">
-            <strong>AI can make mistakes.</strong> Every number is calculated from your
-            file, but check anything important before acting on it.
-          </p>
-          <p className="site-footer-copy">© Satish-Labs</p>
-        </div>
+        <p className="site-footer-copy">© Satish-Labs</p>
       </div>
 
       </div>
