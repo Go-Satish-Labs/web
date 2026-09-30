@@ -79,6 +79,63 @@ export interface Prediction {
   error?: string
 }
 
+export interface AskInterpretation {
+  intent: string
+  metric: string | null
+  group_by: string | null
+  aggregate: string
+  horizon: number | null
+  horizon_unit: string
+  direction_asked: string | null
+  matched_terms: string[]
+}
+
+export interface ForecastPoint {
+  x: string
+  y: number
+}
+
+/** Returned when a question needed a forward projection. */
+export interface Forecast {
+  kind: 'time_series' | 'holdout_backtest'
+  metric: string
+  date_column?: string
+  unit?: string
+  frequency?: string
+  frequency_label?: string
+  last_actual?: number
+  last_actual_date?: string
+  predicted_value?: number
+  predicted_date?: string
+  change_pct?: number | null
+  trend_change_pct?: number
+  signal_strength?: number
+  slope_per_period?: number
+  direction?: 'increasing' | 'decreasing' | 'flat'
+  r2?: number
+  r2_pct?: number
+  confidence?: 'high' | 'moderate' | 'low'
+  method?: string
+  history?: ForecastPoint[]
+  fitted_history?: ForecastPoint[]
+  forecast?: ForecastPoint[]
+  note?: string
+  features_used?: string[]
+  mean_absolute_error?: number
+  rows_total?: number
+  rows_held_out?: number
+}
+
+export interface AskResponse {
+  answer: string
+  used_facts: Record<string, unknown>
+  disclaimer: string
+  remaining_ai_questions: number
+  interpretation: AskInterpretation | null
+  forecast: Forecast | null
+  engine: string
+}
+
 export interface DataStructure {
   is_labeled: boolean
   has_headers: boolean
