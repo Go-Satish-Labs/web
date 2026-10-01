@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import BootSequence from './components/BootSequence'
 import RequireAuth from './components/RequireAuth'
 import { AuthProvider, useAuth } from './features/auth/AuthContext'
+import { api } from './lib/api'
 import AskDataPage from './pages/AskDataPage'
 import BillingPage from './pages/BillingPage'
 import DatasetDetailPage from './pages/DatasetDetailPage'
@@ -11,33 +12,48 @@ import FeedbackPage from './pages/FeedbackPage'
 import LandingPage from './pages/LandingPage'
 
 /**
- * Plays the boot sequence once, on a cold load.
+ * Plays the boot sequence, and keeps playing it until the backend answers.
  *
- * Persisted in sessionStorage rather than shown on every mount: it covers
- * first paint and a slow backend, and replaying it on every route change
- * would be an obstacle rather than an introduction.
+ * The frontend on Vercel and the API on Render are separate hosts, and a
+ * free-tier cold start can leave the API unreachable for a while. The
+ * sequence therefore loops on a health poll rather than ending on a timer
+ * into a black screen that looks broken.
+ *
+ * Runs on every load, and can be skipped at any point.
  */
 function BootGate({ children }: { children: React.ReactNode }) {
-  const [showBoot, setShowBoot] = useState(() => {
-    if (typeof window === 'undefined') return false
-    // A short window rather than the whole tab lifetime, so a reload an hour
-    // later still gets the intro.
-    const KEY = 'analytrix.booted'
-    try {
-      const at = Number(sessionStorage.getItem(KEY) || 0)
-      return Date.now() - at > 5 * 60 * 1000
-    } catch {
-      return false
-    }
-  })
+  const [booting, setBooting] = useState(true)
+  const [ready, setReady] = useState(false)
 
-  if (!showBoot) return <>{children}</>
-  return (
-    <BootSequence onDone={() => {
-      try { sessionStorage.setItem('analytrix.booted', String(Date.now())) } catch { /* private mode */ }
-      setShowBoot(false)
-    }} />
-  )
+  useEffect(() => {
+    if (!booting) return
+    let cancelled = false
+    let timer: number
+
+    // A single fast probe, so the common case (API already warm) clears the
+    // intro almost immediately rather than waiting a full poll interval.
+    const finish = () => {
+      if (cancelled) return
+      setReady(true)
+      setBooting(false)
+    }
+
+    const poll = async () => {
+      try {
+        const { data } = await api.get('/health', { timeout: 6000 })
+        if (data?.status === 'healthy' || data?.status === 'degraded') finish()
+      } catch {
+        // Still down - keep the sequence running and try again.
+      }
+      if (!cancelled) timer = window.setTimeout(poll, 2500)
+    }
+    poll()
+
+    return () => { cancelled = true; window.clearTimeout(timer) }
+  }, [booting])
+
+  if (!booting) return <>{children}</>
+  return <BootSequence waiting={!ready} onDone={() => setBooting(false)} />
 }
 
 function PublicHome() {

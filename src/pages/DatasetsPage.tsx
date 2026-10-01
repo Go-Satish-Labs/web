@@ -101,11 +101,31 @@ export default function DatasetsPage() {
     }
   }
 
+  // Inline two-step confirmation instead of window.confirm, and the error is
+  // surfaced: previously a failed DELETE rejected unhandled, the reload never
+  // ran, and the row just sat there looking like nothing had happened.
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState('')
+
   async function onDelete(id: string, e: React.MouseEvent) {
     e.stopPropagation()
-    if (!confirm('Delete this dataset and its dashboard?')) return
-    await api.delete(`/datasets/${id}`)
-    await load()
+    setDeleteError('')
+    if (confirmingId !== id) {
+      setConfirmingId(id)
+      return
+    }
+    setDeletingId(id)
+    try {
+      await api.delete(`/datasets/${id}`)
+      setConfirmingId(null)
+      await load()
+    } catch (err) {
+      setDeleteError(apiErrorMessage(err))
+      setConfirmingId(null)
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   return (
@@ -153,6 +173,14 @@ export default function DatasetsPage() {
       {error && (
         <div style={{ padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 16, background: '#fef2f2', color: '#dc2626', border: '1.5px solid rgba(220,38,38,0.15)' }}>
           {error}
+        </div>
+      )}
+
+      {/* delete error */}
+      {deleteError && (
+        <div style={{ padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 16, background: '#fef2f2', color: '#dc2626', border: '1.5px solid rgba(220,38,38,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <span>Could not delete: {deleteError}</span>
+          <button onClick={() => setDeleteError('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: 18, lineHeight: 1, padding: 0 }}>×</button>
         </div>
       )}
 
@@ -244,11 +272,31 @@ export default function DatasetsPage() {
                     </span>
                   )}
 
-                  <button onClick={e => onDelete(d.id, e)}
-                    style={{ fontSize: 12, fontWeight: 500, color: '#a8a8a8', background: 'none', border: 'none', padding: '4px 6px', borderRadius: 6, cursor: 'pointer', transition: 'all 0.15s' }}
-                    onMouseEnter={e => { e.currentTarget.style.color = '#dc2626'; e.currentTarget.style.background = '#fef2f2' }}
-                    onMouseLeave={e => { e.currentTarget.style.color = '#a8a8a8'; e.currentTarget.style.background = 'none' }}
-                  >Delete</button>
+                  {confirmingId === d.id ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: 12, color: '#92400e' }}>Delete this file?</span>
+                      <button
+                        onClick={e => onDelete(d.id, e)}
+                        disabled={deletingId === d.id}
+                        style={{ fontSize: 12, fontWeight: 700, color: '#fff', background: '#dc2626', border: 'none', padding: '5px 12px', borderRadius: 8, cursor: 'pointer', opacity: deletingId === d.id ? 0.6 : 1 }}
+                      >
+                        {deletingId === d.id ? 'Deleting…' : 'Yes, delete'}
+                      </button>
+                      <button
+                        onClick={e => { e.stopPropagation(); setConfirmingId(null) }}
+                        style={{ fontSize: 12, fontWeight: 600, color: '#6b6b6b', background: '#fff', border: '1.5px solid #e8e8e8', padding: '5px 12px', borderRadius: 8, cursor: 'pointer' }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={e => onDelete(d.id, e)}
+                      aria-label={`Delete ${d.original_filename}`}
+                      style={{ fontSize: 12, fontWeight: 500, color: '#a8a8a8', background: 'none', border: 'none', padding: '4px 6px', borderRadius: 6, cursor: 'pointer', transition: 'all 0.15s', flexShrink: 0 }}
+                      onMouseEnter={e => { e.currentTarget.style.color = '#dc2626'; e.currentTarget.style.background = '#fef2f2' }}
+                      onMouseLeave={e => { e.currentTarget.style.color = '#a8a8a8'; e.currentTarget.style.background = 'none' }}
+                    >Delete</button>
+                  )}
                 </div>
               </div>
             )

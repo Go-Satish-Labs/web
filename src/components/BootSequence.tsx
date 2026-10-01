@@ -12,12 +12,16 @@ import {
  * component only owns the canvas, the resize handling and the rAF loop, then
  * hands the renderer a clock.
  */
-export default function BootSequence({ onDone }: { onDone: () => void }) {
+export default function BootSequence({ onDone, waiting }: { onDone: () => void; waiting: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const doneRef = useRef(onDone)
   // The skip affordance is in this component's markup while the timeline runs
   // in the effect, so the end callback is published through a ref.
   const finishRef = useRef<() => void>(() => {})
+  // Read inside the rAF loop, so a change mid-run takes effect without
+  // restarting the sequence.
+  const waitingRef = useRef(waiting)
+  waitingRef.current = waiting
 
   useEffect(() => { doneRef.current = onDone }, [onDone])
 
@@ -86,9 +90,18 @@ export default function BootSequence({ onDone }: { onDone: () => void }) {
     finishRef.current = finish
 
     const draw = (now: number) => {
-      const t = (now - start) / 1000
-      if (t >= T.end) { finish(); return }
-      renderBootFrame(ctx, t, geo, particles)
+      // While the API is unreachable the sequence loops instead of ending, so
+      // the screen stays alive for as long as the backend is cold - a Render
+      // free-tier cold start can take a while, and a frozen black screen reads
+      // as broken.
+      if (waitingRef.current) {
+        const cycle = (now - start) % ((T.end + 0.6) * 1000)
+        renderBootFrame(ctx, cycle / 1000, geo, particles)
+      } else {
+        const t = (now - start) / 1000
+        if (t >= T.end) { finish(); return }
+        renderBootFrame(ctx, t, geo, particles)
+      }
       raf = requestAnimationFrame(draw)
     }
     raf = requestAnimationFrame(draw)
@@ -115,6 +128,19 @@ export default function BootSequence({ onDone }: { onDone: () => void }) {
       }}
     >
       <canvas ref={canvasRef} style={{ display: 'block' }} />
+      {waiting && (
+        <div
+          aria-live="polite"
+          style={{
+            position: 'absolute', left: 0, right: 0, bottom: 58,
+            textAlign: 'center', color: WHITE, opacity: 0.45,
+            fontSize: 10, letterSpacing: '0.2em', fontWeight: 300,
+            fontFamily: 'Inter, system-ui, sans-serif',
+          }}
+        >
+          CONNECTING TO THE ANALYTICS ENGINE…
+        </div>
+      )}
       <button
         onClick={e => { e.stopPropagation(); finishRef.current() }}
         style={{

@@ -56,11 +56,11 @@ export default function ShareButton({ datasetId, mode, prediction }: {
   const [error, setError] = useState('')
   const [created, setCreated] = useState<string | null>(null)
   const [links, setLinks] = useState<ShareLink[]>([])
-  const [copied, setCopied] = useState(false)
+  const [copiedToken, setCopiedToken] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
-    setError(''); setCreated(null); setCopied(false)
+    setError(''); setCreated(null); setCopiedToken(null)
     api.get<ShareLink[]>('/dashboards/shared/list')
       .then(({ data }) => setLinks(data.filter(l => l.mode === mode)))
       .catch((e) => setError(apiErrorMessage(e)))
@@ -93,13 +93,38 @@ export default function ShareButton({ datasetId, mode, prediction }: {
     } catch (e) { setError(apiErrorMessage(e)) }
   }
 
-  async function copy(url: string) {
+  /**
+   * Copies text, with a fallback.
+   *
+   * navigator.clipboard is unavailable or rejects on some browsers and in any
+   * non-secure context, and it fails silently enough that the button just sat
+   * there never saying "Copied". The fallback selects the text and uses the
+   * legacy command, which works without the permission, and the input is
+   * focused and selected either way so it can be copied by hand.
+   */
+  async function copy(text: string, linkToken: string) {
+    const value = absolute(text)
+    setError('')
+    let ok = false
     try {
-      await navigator.clipboard.writeText(absolute(url))
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1800)
+      await navigator.clipboard.writeText(value)
+      ok = true
     } catch {
-      setError('Could not copy automatically — select the link and copy it manually.')
+      // Fall through to the legacy path.
+    }
+    if (!ok) {
+      const input = document.getElementById(`share-url-${linkToken}`) as HTMLInputElement | null
+      if (input) {
+        input.focus()
+        input.select()
+        try { ok = document.execCommand('copy') } catch { ok = false }
+      }
+    }
+    if (ok) {
+      setCopiedToken(linkToken)
+      setTimeout(() => setCopiedToken(p => (p === linkToken ? null : p)), 2200)
+    } else {
+      setError('Copy was blocked by the browser — the link is selected, press Ctrl+C or ⌘C.')
     }
   }
 
@@ -142,11 +167,16 @@ export default function ShareButton({ datasetId, mode, prediction }: {
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#15803d', marginBottom: 6 }}>✓ Link ready</div>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'stretch' }}>
-                  <input readOnly value={absolute(created)}
-                    style={{ flex: 1, padding: '8px 10px', fontSize: 12, borderRadius: 8, border: '1.5px solid #e8e8e8', background: '#fafafa' }} />
-                  <button onClick={() => copy(created)}
-                    style={{ padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700, border: '1.5px solid #e8e8e8', background: '#fff', color: '#0a0a0a', whiteSpace: 'nowrap' }}>
-                    {copied ? '✓ Copied' : 'Copy'}
+                  <input
+                    id={`share-url-${created}`}
+                    readOnly
+                    value={absolute(created)}
+                    onFocus={e => e.currentTarget.select()}
+                    style={{ flex: 1, padding: '8px 10px', fontSize: 12, borderRadius: 8, border: '1.5px solid #e8e8e8', background: '#fafafa', minWidth: 0 }}
+                  />
+                  <button onClick={() => copy(created, created)}
+                    style={{ padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700, border: '1.5px solid #e8e8e8', background: copiedToken === created ? '#f0fdf4' : '#fff', color: copiedToken === created ? '#15803d' : '#0a0a0a', whiteSpace: 'nowrap' }}>
+                    {copiedToken === created ? '✓ Copied' : 'Copy'}
                   </button>
                   <a href={absolute(created)} target="_blank" rel="noreferrer"
                     style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, background: '#0a0a0a', color: '#fff', textDecoration: 'none', whiteSpace: 'nowrap' }}>
@@ -179,9 +209,9 @@ export default function ShareButton({ datasetId, mode, prediction }: {
                           {absolute(l.url)}
                         </div>
                       </div>
-                      <button onClick={() => copy(l.url)}
-                        style={{ background: '#fff', border: '1.5px solid #e8e8e8', borderRadius: 6, padding: '5px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', color: '#0a0a0a' }}>
-                        Copy
+                      <button onClick={() => copy(l.url, l.token)}
+                        style={{ background: copiedToken === l.token ? '#f0fdf4' : '#fff', border: '1.5px solid #e8e8e8', borderRadius: 6, padding: '5px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', color: copiedToken === l.token ? '#15803d' : '#0a0a0a', flexShrink: 0 }}>
+                        {copiedToken === l.token ? '✓ Copied' : 'Copy'}
                       </button>
                       <button onClick={() => revoke(l.token)}
                         style={{ background: '#fff', border: '1.5px solid #fecaca', borderRadius: 6, padding: '5px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', color: '#dc2626' }}>
