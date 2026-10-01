@@ -3,6 +3,22 @@ import { api, apiErrorMessage, type Prediction } from '../lib/api'
 
 const BASE = import.meta.env.VITE_API_URL || '/api'
 
+/**
+ * Turns a server-relative path like "/dashboards/shared/abc" into a link the
+ * user can open.
+ *
+ * BASE is an absolute URL in production (https://api-...onrender.com) but a
+ * path in dev (/api), where Vite proxies it. Joining those naively with the
+ * page origin produced
+ * "https://app.vercel.apphttps://api-...onrender.com/dashboards/shared/abc",
+ * which is why shared links worked locally and 404'd once deployed. An
+ * absolute BASE is already the whole answer, so it is used as-is.
+ */
+function absolute(url: string): string {
+  if (/^https?:\/\//i.test(BASE)) return `${BASE}${url}`
+  return `${window.location.origin}${BASE}${url}`
+}
+
 interface ShareLink {
   token: string
   mode: string
@@ -12,10 +28,6 @@ interface ShareLink {
   expires_at: string | null
   view_count: number
   expired: boolean
-}
-
-function absolute(url: string): string {
-  return `${window.location.origin}${BASE}${url}`
 }
 
 function when(iso: string | null): string {

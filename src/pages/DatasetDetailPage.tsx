@@ -8,7 +8,7 @@ import {
 import Shell from '../components/Shell'
 import PredictionSetup from '../components/PredictionSetup'
 import ShareButton from '../components/ShareButton'
-import { api, type ChartSpec, type DashboardConfig, type DataStructure, type Prediction } from '../lib/api'
+import { api, apiErrorMessage, type ChartSpec, type DashboardConfig, type DataStructure, type Prediction } from '../lib/api'
 
 /* ── helpers ── */
 function fn(raw: string): string {
@@ -363,13 +363,48 @@ function PreviewTable({ preview }: { preview: PreviewData }) {
 function ExportBtn({ datasetId }: { datasetId: string }) {
   const [open, setOpen] = useState(false)
   const [rect, setRect] = useState<DOMRect | null>(null)
+  const [busy, setBusy] = useState<string | null>(null)
+  const [error, setError] = useState('')
   const btnRef = useRef<HTMLButtonElement>(null)
-  const base = (import.meta.env.VITE_API_URL || '/api') + `/dashboards/by-dataset/${datasetId}/export`
   const opts = [
     { label: 'JSON', fmt: 'json', desc: 'Raw data for developers' },
     { label: 'CSV',  fmt: 'csv',  desc: 'Open in Excel / Sheets' },
     { label: 'HTML', fmt: 'html', desc: 'Printable report' },
   ]
+
+  /**
+   * Fetches through the axios client, not a plain <a href>.
+   *
+   * The backend authenticates via the Authorization header only, and a
+   * browser navigation cannot send one - so linking straight to the export URL
+   * always returned 401 "Not authenticated". Going through `api` attaches the
+   * token, and the response is turned into a blob we save ourselves.
+   */
+  async function download(fmt: string, label: string) {
+    setError('')
+    setBusy(fmt)
+    try {
+      const response = await api.get(
+        `/dashboards/by-dataset/${datasetId}/export`,
+        { params: { fmt }, responseType: 'blob' },
+      )
+      const blob = new Blob([response.data], { type: mimeFor(fmt) })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `${label.toLowerCase()}-${datasetId.slice(0, 8)}.${extFor(fmt)}`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      // Revoking immediately can cancel the download in some browsers.
+      setTimeout(() => URL.revokeObjectURL(url), 30_000)
+      setOpen(false)
+    } catch (err) {
+      setError(apiErrorMessage(err))
+    } finally {
+      setBusy(null)
+    }
+  }
 
   function toggle() {
     if (!open && btnRef.current) setRect(btnRef.current.getBoundingClientRect())
@@ -395,21 +430,38 @@ function ExportBtn({ datasetId }: { datasetId: string }) {
       {open && rect && (
         <div
           onClick={e => e.stopPropagation()}
-          style={{ position: 'fixed', top: rect.bottom + 6, right: window.innerWidth - rect.right, background: '#fff', borderRadius: 12, border: '1.5px solid #e8e8e8', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', overflow: 'hidden', zIndex: 9999, minWidth: 190 }}>
+          style={{ position: 'fixed', top: rect.bottom + 6, right: window.innerWidth - rect.right, background: '#fff', borderRadius: 12, border: '1.5px solid #e8e8e8', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', overflow: 'hidden', zIndex: 9999, minWidth: 210 }}>
           {opts.map(o => (
-            <a key={o.fmt} href={`${base}?fmt=${o.fmt}`} download onClick={() => setOpen(false)}
-              style={{ display: 'block', padding: '11px 16px', textDecoration: 'none', borderBottom: '1px solid #f3f3f3' }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#f9f9f9')}
-              onMouseLeave={e => (e.currentTarget.style.background = '#fff')}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#0a0a0a' }}>{o.label}</div>
+            <button key={o.fmt} onClick={() => download(o.fmt, o.label)} disabled={busy !== null}
+              style={{
+                display: 'block', width: '100%', textAlign: 'left', padding: '11px 16px',
+                border: 'none', background: 'transparent', cursor: busy ? 'wait' : 'pointer',
+                borderBottom: '1px solid #f3f3f3', opacity: busy && busy !== o.fmt ? 0.5 : 1,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#f9f9f9' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#0a0a0a' }}>
+                {busy === o.fmt ? 'Preparing…' : o.label}
+              </div>
               <div style={{ fontSize: 11, color: '#6b6b6b' }}>{o.desc}</div>
-            </a>
+            </button>
           ))}
+          {error && (
+            <div style={{ padding: '9px 16px', fontSize: 11, color: '#dc2626', background: '#fef2f2' }}>
+              {error}
+            </div>
+          )}
         </div>
       )}
     </>
   )
 }
+
+const extFor = (fmt: string) => (fmt === 'json' ? 'json' : fmt === 'csv' ? 'csv' : 'html')
+const mimeFor = (fmt: string) =>
+  fmt === 'json' ? 'application/json'
+  : fmt === 'csv' ? 'text/csv'
+  : 'text/html'
 
 /* ── History / Prediction toggle ── */
 type ViewMode = 'history' | 'prediction'
