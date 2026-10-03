@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+﻿import { useEffect, useRef } from 'react'
 import {
   BLACK, T, WHITE,
   buildParticles, renderBootFrame, sampleWordmark,
@@ -22,9 +22,9 @@ export default function BootSequence({ onDone, waiting }: { onDone: () => void; 
   // restarting the sequence.
   const waitingRef = useRef(waiting)
   waitingRef.current = waiting
-  // Latches the instant the API answers, so the handover is timed from the
-  // start of one final pass rather than from the middle of the current one.
-  const finalPassRef = useRef<number | null>(null)
+  // Mirrors the sequence timeline so the handover can be scheduled on a timer
+  // as well as by the animation loop.
+  const elapsedRef = useRef(0)
 
   useEffect(() => { doneRef.current = onDone }, [onDone])
 
@@ -79,7 +79,6 @@ export default function BootSequence({ onDone, waiting }: { onDone: () => void; 
     layout()
     window.addEventListener('resize', layout)
 
-    const start = performance.now()
     let raf = 0
     let finished = false
 
@@ -92,23 +91,24 @@ export default function BootSequence({ onDone, waiting }: { onDone: () => void; 
     }
     finishRef.current = finish
 
-    const draw = (now: number) => {
-      // The sequence runs on a loop while the API is unreachable. When the API
-      // answers, the moment is latched and a single clean pass plays from the
-      // top before handing over - so the handover lands on the finished
-      // wordmark rather than cutting away mid-formation.
-      if (!waitingRef.current && finalPassRef.current === null) {
-        finalPassRef.current = now
-      }
-      const base = finalPassRef.current ?? start
-      const elapsed = (now - base) / 1000
+    const CYCLE = (T.end + 0.6) * 1000
+    let origin = performance.now()
 
+    const draw = (now: number) => {
+      // One pass always plays. While the API is unreachable a finished pass
+      // simply begins again, so the sequence keeps going for as long as the
+      // backend is cold. When the API answers, the clock is no longer reset -
+      // the pass already in progress runs to its end, so the app is handed
+      // over on the completed wordmark rather than cutting away part-way
+      // through the formation.
       if (waitingRef.current) {
-        const cycle = (now - start) % ((T.end + 0.6) * 1000)
-        renderBootFrame(ctx, cycle / 1000, geo, particles)
+        if (now - origin >= CYCLE) origin = now
+        elapsedRef.current = (now - origin) / 1000
+        renderBootFrame(ctx, elapsedRef.current, geo, particles)
       } else {
-        if (elapsed >= T.end) { finish(); return }
-        renderBootFrame(ctx, elapsed, geo, particles)
+        elapsedRef.current = (now - origin) / 1000
+        if (elapsedRef.current >= T.end) { finish(); return }
+        renderBootFrame(ctx, elapsedRef.current, geo, particles)
       }
       raf = requestAnimationFrame(draw)
     }
@@ -124,6 +124,19 @@ export default function BootSequence({ onDone, waiting }: { onDone: () => void; 
       window.removeEventListener('resize', layout)
     }
   }, [])
+
+  // The handover must not depend on requestAnimationFrame being scheduled.
+  // Browsers throttle rAF to a crawl in a background tab and suspend it
+  // entirely on some devices, so a user who switched tabs during the boot
+  // could be left staring at a frozen sequence that never hands over - even
+  // though the API answered. Once the API is up, a plain timer ends the pass
+  // at the same moment the animation would have.
+  useEffect(() => {
+    if (waiting) return
+    const remaining = Math.max(0, T.end * 1000 - elapsedRef.current * 1000)
+    const id = window.setTimeout(() => finishRef.current(), remaining)
+    return () => window.clearTimeout(id)
+  }, [waiting])
 
   return (
     <div
@@ -148,7 +161,7 @@ export default function BootSequence({ onDone, waiting }: { onDone: () => void; 
             fontFamily: 'Inter, system-ui, sans-serif',
           }}
         >
-          CONNECTING TO THE ANALYTICS ENGINE…
+          CONNECTING TO THE ANALYTICS ENGINEâ€¦
         </div>
       )}
       <button

@@ -12,17 +12,21 @@ import FeedbackPage from './pages/FeedbackPage'
 import LandingPage from './pages/LandingPage'
 
 /**
- * Plays the boot sequence, and keeps playing it until the backend answers.
+ * Plays the boot sequence once on every load, and keeps playing it until the
+ * backend answers.
  *
- * The frontend on Vercel and the API on Render are separate hosts, and a
- * free-tier cold start can leave the API unreachable for a while. The
- * sequence therefore loops on a health poll rather than ending on a timer:
- * if the server is not up after one pass of the ANALYTRIX formation, the next
- * one begins. There is no time limit - the handover is driven purely by
- * whether the API has responded, never by a clock.
+ * The sequence always runs at least one full pass - it is the product's
+ * front door, so it plays even when the API is already warm and the wait would
+ * otherwise be zero. What the backend changes is only what happens *after*
+ * that pass:
  *
- * Runs on every load. SKIP (or Escape) is the way out if someone does not
- * want to wait.
+ * - API up: one pass, then the app.
+ * - API down: the pass repeats until the API answers, then the pass already in
+ *   progress finishes and the app appears on the completed wordmark.
+ *
+ * The handover is driven by the health response, never by a clock, and never
+ * by cutting a pass short. SKIP (or Escape) is the way out for anyone who does
+ * not want to wait.
  */
 function BootGate({ children }: { children: React.ReactNode }) {
   const [booting, setBooting] = useState(true)
@@ -33,22 +37,15 @@ function BootGate({ children }: { children: React.ReactNode }) {
     let cancelled = false
     let timer: number
 
-    const finish = () => {
-      if (cancelled) return
-      setReady(true)
-      setBooting(false)
-    }
-
     const poll = async () => {
       try {
         const { data } = await api.get('/health', { timeout: 6000 })
         if (cancelled) return
-        // 'degraded' still answers, so the sequence can stand down; the app
-        // then surfaces its own database-unavailable messaging.
-        if (data?.status === 'healthy' || data?.status === 'degraded') finish()
+        // 'degraded' still answers, so the wait can end; the app surfaces its
+        // own database-unavailable messaging afterwards.
+        if (data?.status === 'healthy' || data?.status === 'degraded') setReady(true)
       } catch {
-        // Not awake yet. Keep looping and try again - no timeout, because the
-        // boot sequence is the loading state for exactly this situation.
+        // Not awake yet - the sequence keeps looping.
       }
       if (!cancelled) timer = window.setTimeout(poll, 2500)
     }
