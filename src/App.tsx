@@ -19,8 +19,16 @@ import LandingPage from './pages/LandingPage'
  * sequence therefore loops on a health poll rather than ending on a timer
  * into a black screen that looks broken.
  *
+ * The wait is capped, though, and deliberately so. A blocking intro is only
+ * safe if it cannot become a cage: ad blockers and privacy extensions answer
+ * net::ERR_BLOCKED_BY_CLIENT, and a poll that can never succeed would strand
+ * the user on the splash forever. After the cap the app is shown regardless,
+ * and the app's own request errors report a genuinely unreachable API.
+ *
  * Runs on every load, and can be skipped at any point.
  */
+const MAX_BOOT_WAIT_MS = 20_000
+
 function BootGate({ children }: { children: React.ReactNode }) {
   const [booting, setBooting] = useState(true)
   const [ready, setReady] = useState(false)
@@ -30,26 +38,42 @@ function BootGate({ children }: { children: React.ReactNode }) {
     let cancelled = false
     let timer: number
 
-    // A single fast probe, so the common case (API already warm) clears the
-    // intro almost immediately rather than waiting a full poll interval.
     const finish = () => {
       if (cancelled) return
       setReady(true)
       setBooting(false)
     }
 
+    // The cap is not a success - it just stops blocking the user. `ready`
+    // stays false so the sequence still shows the connecting state if the
+    // user is still looking at it, and any in-flight request surfaces its own
+    // error inside the app.
+    const cap = window.setTimeout(() => {
+      if (!cancelled) { setReady(true); setBooting(false) }
+    }, MAX_BOOT_WAIT_MS)
+
     const poll = async () => {
       try {
         const { data } = await api.get('/health', { timeout: 6000 })
-        if (data?.status === 'healthy' || data?.status === 'degraded') finish()
+        if (cancelled) return
+        // 'degraded' still answers, so the intro can stand down; the app then
+        // shows its own database-unavailable messaging.
+        if (data?.status === 'healthy' || data?.status === 'degraded') {
+          window.clearTimeout(cap)
+          finish()
+        }
       } catch {
-        // Still down - keep the sequence running and try again.
+        // Blocked, offline, or still waking - keep the sequence running.
       }
       if (!cancelled) timer = window.setTimeout(poll, 2500)
     }
     poll()
 
-    return () => { cancelled = true; window.clearTimeout(timer) }
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+      window.clearTimeout(cap)
+    }
   }, [booting])
 
   if (!booting) return <>{children}</>
