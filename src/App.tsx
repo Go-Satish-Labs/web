@@ -16,19 +16,14 @@ import LandingPage from './pages/LandingPage'
  *
  * The frontend on Vercel and the API on Render are separate hosts, and a
  * free-tier cold start can leave the API unreachable for a while. The
- * sequence therefore loops on a health poll rather than ending on a timer
- * into a black screen that looks broken.
+ * sequence therefore loops on a health poll rather than ending on a timer:
+ * if the server is not up after one pass of the ANALYTRIX formation, the next
+ * one begins. There is no time limit - the handover is driven purely by
+ * whether the API has responded, never by a clock.
  *
- * The wait is capped, though, and deliberately so. A blocking intro is only
- * safe if it cannot become a cage: ad blockers and privacy extensions answer
- * net::ERR_BLOCKED_BY_CLIENT, and a poll that can never succeed would strand
- * the user on the splash forever. After the cap the app is shown regardless,
- * and the app's own request errors report a genuinely unreachable API.
- *
- * Runs on every load, and can be skipped at any point.
+ * Runs on every load. SKIP (or Escape) is the way out if someone does not
+ * want to wait.
  */
-const MAX_BOOT_WAIT_MS = 20_000
-
 function BootGate({ children }: { children: React.ReactNode }) {
   const [booting, setBooting] = useState(true)
   const [ready, setReady] = useState(false)
@@ -44,36 +39,22 @@ function BootGate({ children }: { children: React.ReactNode }) {
       setBooting(false)
     }
 
-    // The cap is not a success - it just stops blocking the user. `ready`
-    // stays false so the sequence still shows the connecting state if the
-    // user is still looking at it, and any in-flight request surfaces its own
-    // error inside the app.
-    const cap = window.setTimeout(() => {
-      if (!cancelled) { setReady(true); setBooting(false) }
-    }, MAX_BOOT_WAIT_MS)
-
     const poll = async () => {
       try {
         const { data } = await api.get('/health', { timeout: 6000 })
         if (cancelled) return
-        // 'degraded' still answers, so the intro can stand down; the app then
-        // shows its own database-unavailable messaging.
-        if (data?.status === 'healthy' || data?.status === 'degraded') {
-          window.clearTimeout(cap)
-          finish()
-        }
+        // 'degraded' still answers, so the sequence can stand down; the app
+        // then surfaces its own database-unavailable messaging.
+        if (data?.status === 'healthy' || data?.status === 'degraded') finish()
       } catch {
-        // Blocked, offline, or still waking - keep the sequence running.
+        // Not awake yet. Keep looping and try again - no timeout, because the
+        // boot sequence is the loading state for exactly this situation.
       }
       if (!cancelled) timer = window.setTimeout(poll, 2500)
     }
     poll()
 
-    return () => {
-      cancelled = true
-      window.clearTimeout(timer)
-      window.clearTimeout(cap)
-    }
+    return () => { cancelled = true; window.clearTimeout(timer) }
   }, [booting])
 
   if (!booting) return <>{children}</>
