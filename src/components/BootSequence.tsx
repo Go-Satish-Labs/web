@@ -22,6 +22,9 @@ export default function BootSequence({ onDone, waiting }: { onDone: () => void; 
   // restarting the sequence.
   const waitingRef = useRef(waiting)
   waitingRef.current = waiting
+  // Latches the instant the API answers, so the handover is timed from the
+  // start of one final pass rather than from the middle of the current one.
+  const finalPassRef = useRef<number | null>(null)
 
   useEffect(() => { doneRef.current = onDone }, [onDone])
 
@@ -90,17 +93,22 @@ export default function BootSequence({ onDone, waiting }: { onDone: () => void; 
     finishRef.current = finish
 
     const draw = (now: number) => {
-      // While the API is unreachable the sequence loops instead of ending, so
-      // the screen stays alive for as long as the backend is cold - a Render
-      // free-tier cold start can take a while, and a frozen black screen reads
-      // as broken.
+      // The sequence runs on a loop while the API is unreachable. When the API
+      // answers, the moment is latched and a single clean pass plays from the
+      // top before handing over - so the handover lands on the finished
+      // wordmark rather than cutting away mid-formation.
+      if (!waitingRef.current && finalPassRef.current === null) {
+        finalPassRef.current = now
+      }
+      const base = finalPassRef.current ?? start
+      const elapsed = (now - base) / 1000
+
       if (waitingRef.current) {
         const cycle = (now - start) % ((T.end + 0.6) * 1000)
         renderBootFrame(ctx, cycle / 1000, geo, particles)
       } else {
-        const t = (now - start) / 1000
-        if (t >= T.end) { finish(); return }
-        renderBootFrame(ctx, t, geo, particles)
+        if (elapsed >= T.end) { finish(); return }
+        renderBootFrame(ctx, elapsed, geo, particles)
       }
       raf = requestAnimationFrame(draw)
     }
@@ -121,10 +129,12 @@ export default function BootSequence({ onDone, waiting }: { onDone: () => void; 
     <div
       role="status"
       aria-label="Analytrix is starting up"
-      onClick={() => finishRef.current()}
       style={{
         position: 'fixed', inset: 0, zIndex: 9999,
-        background: BLACK, cursor: 'pointer',
+        background: BLACK,
+        // Deliberately not click-to-dismiss. Tapping anywhere while a boot
+        // sequence is running meant a stray click dropped straight into the
+        // login page; only the explicit SKIP control or Escape gets you out.
       }}
     >
       <canvas ref={canvasRef} style={{ display: 'block' }} />
@@ -142,7 +152,7 @@ export default function BootSequence({ onDone, waiting }: { onDone: () => void; 
         </div>
       )}
       <button
-        onClick={e => { e.stopPropagation(); finishRef.current() }}
+        onClick={() => finishRef.current()}
         style={{
           position: 'absolute', right: 20, bottom: 18,
           background: 'transparent', border: 'none', cursor: 'pointer',
