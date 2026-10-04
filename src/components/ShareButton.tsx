@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { api, apiErrorMessage, type Prediction } from '../lib/api'
+import { api, apiErrorMessage, BASE_URL, type Prediction } from '../lib/api'
 
-const BASE = import.meta.env.VITE_API_URL || '/api'
+const BASE = BASE_URL
 
 /**
  * Turns a server-relative path like "/dashboards/shared/abc" into a link the

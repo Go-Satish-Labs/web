@@ -1,7 +1,21 @@
 import axios from 'axios'
 import { firebaseAuth } from './firebase'
 
-const BASE_URL = import.meta.env.VITE_API_URL || '/api'
+/**
+ * Same-origin by default, and not configurable.
+ *
+ * Requests go to `/api/*` on this host and are forwarded to the API by the
+ * Vite dev proxy locally and by the `rewrites` entry in vercel.json in
+ * production. Both strip the `/api` prefix and land on the same backend path.
+ *
+ * This deliberately does not read VITE_API_URL. It was set to the absolute API
+ * origin in the Vercel project settings, and because Vite inlines VITE_ vars at
+ * build time and process env beats .env, that silently overrode the proxy:
+ * every request went cross-origin, which meant CORS could reject it and an
+ * ad blocker could intercept it. One code path with no override is harder to
+ * misconfigure than a documented default with a footgun.
+ */
+export const BASE_URL = '/api'
 
 export const api = axios.create({ baseURL: BASE_URL })
 
