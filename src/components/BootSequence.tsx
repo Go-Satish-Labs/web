@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import {
   BLACK, T, WHITE,
   buildParticles, renderBootFrame, sampleWordmark,
@@ -161,7 +161,7 @@ export default function BootSequence({ onDone, waiting }: { onDone: () => void; 
             fontFamily: 'Inter, system-ui, sans-serif',
           }}
         >
-          CONNECTING TO THE ANALYTICS ENGINEâ€¦
+          CONNECTING TO THE ANALYTICS ENGINE…
         </div>
       )}
       <button
