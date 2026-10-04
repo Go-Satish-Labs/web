@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { api, type UsageInfo } from '../lib/api'
+import type { UsageInfo } from '../lib/api'
 
 function UsageBar({ used, max, label }: { used: number; max: number; label: string }) {
   const pct = max > 0 ? Math.min(100, (used / max) * 100) : 0
@@ -24,13 +23,15 @@ function UsageBar({ used, max, label }: { used: number; max: number; label: stri
   )
 }
 
-export default function QuotaBar() {
-  const [usage, setUsage] = useState<UsageInfo | null>(null)
-
-  useEffect(() => {
-    api.get('/workspace/usage').then((r) => setUsage(r.data)).catch(() => {})
-  }, [])
-
+/**
+ * Quota counters for the workspace.
+ *
+ * Usage is passed in rather than fetched here. This component used to fetch
+ * it once on mount, so it kept showing the count it had at page load: upload a
+ * file and the counter stayed behind, delete one and it stayed too. Whoever
+ * owns the data now refreshes both together.
+ */
+export default function QuotaBar({ usage }: { usage: UsageInfo | null }) {
   if (!usage) return null
 
   return (

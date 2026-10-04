@@ -17,14 +17,13 @@
   --accent-light: #f3f3f3;
   --accent-glow: rgba(0,0,0,0.08);
 
-  /* Brand palette, taken from the logo artwork so navigation, icons and
-     favicon all read as one system rather than a purple mark on a monochrome
-     interface. */
-  --brand: #863bff;
-  --brand-deep: #7e14ff;
-  --brand-cyan: #47bfff;
-  --brand-tint: #f5f0ff;
-  --brand-tint-2: #ede4ff;
+  /* Brand palette, taken from the logo artwork - a gold-to-teal ribbon - so
+     navigation, accents and the favicon read as one system. */
+  --brand: #0f766e;
+  --brand-deep: #115e59;
+  --brand-gold: #d97706;
+  --brand-tint: #f0fdfa;
+  --brand-tint-2: #ccfbf1;
 
   --good: #16a34a;
   --good-light: #f0fdf4;

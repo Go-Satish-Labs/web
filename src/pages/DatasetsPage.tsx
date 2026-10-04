@@ -4,7 +4,7 @@ import QuotaBar from '../components/QuotaBar'
 import RocketDialog from '../components/RocketDialog'
 import RetentionNotice, { RetentionTag } from '../components/RetentionNotice'
 import Shell from '../components/Shell'
-import { api, apiErrorMessage, type Dataset } from '../lib/api'
+import { api, apiErrorMessage, type Dataset, type UsageInfo } from '../lib/api'
 
 const STATUS: Record<string, { label: string; color: string; bg: string; border: string }> = {
   analyzed: { label: 'Ready',     color: '#16a34a', bg: '#f0fdf4', border: 'rgba(22,163,74,0.2)' },
@@ -17,6 +17,7 @@ type RocketPhase = 'launching' | 'flying' | 'landed'
 
 export default function DatasetsPage() {
   const [datasets, setDatasets]   = useState<Dataset[]>([])
+  const [usage, setUsage]         = useState<UsageInfo | null>(null)
   const [loading, setLoading]     = useState(true)
   const [uploading, setUploading] = useState(false)
   const [rocket, setRocket]       = useState<RocketPhase | null>(null)
@@ -26,10 +27,21 @@ export default function DatasetsPage() {
   const fileRef                   = useRef<HTMLInputElement>(null)
   const navigate                  = useNavigate()
 
+  // Usage is fetched here rather than inside QuotaBar. It used to own that
+  // fetch, so deleting a dataset refreshed the list below it while the
+  // counter above it kept showing the old number - the quota looked stuck.
   const load = useCallback(async () => {
     setLoading(true)
-    try { const { data } = await api.get('/datasets'); setDatasets(data) }
-    finally { setLoading(false) }
+    try {
+      const [{ data }, usageRes] = await Promise.all([
+        api.get('/datasets'),
+        api.get<UsageInfo>('/workspace/usage').catch(() => null),
+      ])
+      setDatasets(data)
+      if (usageRes) setUsage(usageRes.data)
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -152,7 +164,7 @@ export default function DatasetsPage() {
           disabled={uploading} onChange={e => e.target.files?.[0] && onFileChosen(e.target.files[0])} />
       </div>
 
-      <QuotaBar />
+      <QuotaBar usage={usage} />
 
       {/* privacy notice - copy comes from the server so it matches the real window */}
       <RetentionNotice />
