@@ -238,8 +238,8 @@ button { font-family: inherit; cursor: pointer; }
   /* Header: full width, tighter padding */
   header { left: 0 !important; right: 0 !important; padding: 0 16px 0 16px !important; }
 
-  /* Main content: full width, no left offset */
-  main { paddingLeft: 0 !important; }
+  /* Main content: full width, no left offset for the hidden rail */
+  main { padding-left: 0 !important; }
 
   /* Clear the fixed bottom nav. Without this the last element of every page
      sits underneath it and cannot be scrolled clear, because the nav is
@@ -254,37 +254,37 @@ button { font-family: inherit; cursor: pointer; }
   .login-form-panel { width: 100% !important; padding: 24px 16px !important; }
 
   /* KPI cards: single column on small screens */
-  .kpi-grid { gridTemplateColumns: 1fr !important; }
+  .kpi-grid { grid-template-columns: 1fr !important; }
 
   /* Chart grid: single column */
-  .chart-grid { gridTemplateColumns: 1fr !important; }
+  .chart-grid { grid-template-columns: 1fr !important; }
 
   /* Dataset list rows: stack on mobile */
-  .dataset-row { flexWrap: wrap !important; gap: 12px !important; padding: 12px 16px !important; }
+  .dataset-row { flex-wrap: wrap !important; gap: 12px !important; padding: 12px 16px !important; }
 
   /* Dataset title bar */
-  .dataset-title-bar { flexWrap: wrap !important; gap: 12px !important; }
+  .dataset-title-bar { flex-wrap: wrap !important; gap: 12px !important; }
 
   /* Hero: tighter */
   .hero-card { padding: 20px 16px !important; }
-  .hero-title { fontSize: 22 !important; }
+  .hero-title { font-size: 22px !important; }
 
   /* Login page: stack panels */
-  .login-page { flexDirection: column !important; }
+  .login-page { flex-direction: column !important; }
 
   /* Login left panel: hidden on mobile */
   .login-left-panel { display: none !important; }
 
   /* Login right panel: full width */
-  .login-right-panel { width: 100% !important; flexShrink: 0 !important; padding: 28px 20px !important; }
+  .login-right-panel { width: 100% !important; flex-shrink: 0 !important; padding: 28px 20px !important; }
 
   /* Preview modal: smaller max width */
-  .preview-modal { maxWidth: 95vw !important; }
+  .preview-modal { max-width: 95vw !important; }
 
   /* Top/bottom ranking: single column on mobile */
-  .ranking-grid { gridTemplateColumns: 1fr !important; }
+  .ranking-grid { grid-template-columns: 1fr !important; }
 
-  /* Table: horizontal scroll handled by overflowX:auto already */
+  /* Table: horizontal scroll handled by overflow-x:auto already */
 
   /* The Ask page is a full-height chat that manages its own height, so it must
      not also inherit the bottom-nav padding the other pages need. */
@@ -301,13 +301,13 @@ button { font-family: inherit; cursor: pointer; }
 }
 
 @media (max-width: 480px) {
-  body { fontSize: 14px; }
-  h1 { fontSize: 20px !important; }
-  .font-mono-num { fontSize: 20px !important; }
-  .kpi-value { fontSize: 22 !important; }
-  .hero-stat { fontSize: 20 !important; }
-  .hero-title { fontSize: 18 !important; }
-  .bottom-nav .bn-item { fontSize: 9px; }
+  body { font-size: 14px; }
+  h1 { font-size: 20px !important; }
+  .font-mono-num { font-size: 20px !important; }
+  .kpi-value { font-size: 22px !important; }
+  .hero-stat { font-size: 20px !important; }
+  .hero-title { font-size: 18px !important; }
+  .bottom-nav .bn-item { font-size: 9px; }
 }
 
 /* ── Virtual pets ── */
@@ -405,9 +405,9 @@ button { font-family: inherit; cursor: pointer; }
   padding: 28px 36px;
   background: #ffffff;
   border-radius: 18px;
-  boxShadow: 0 24px 60px rgba(0,0,0,0.35);
+  box-shadow: 0 24px 60px rgba(0,0,0,0.35);
   border: 1.5px solid #e8e8e8;
-  maxWidth: 92vw;
+  max-width: 92vw;
 }
 
 .rocket {
