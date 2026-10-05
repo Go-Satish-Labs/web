@@ -93,7 +93,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function login(email: string, password: string) {
     setAuthError('')
     try {
-      await signInWithEmailAndPassword(firebaseAuth, email, password)
+      const credential = await signInWithEmailAndPassword(firebaseAuth, email, password)
+      // An account that predates verification - or whose first email went to
+      // spam - is sent one on sign-in too. Without this they reach the
+      // "check your inbox" screen for a message that was never sent, and the
+      // only way out is a button that guesses they will find it.
+      if (!credential.user.emailVerified) {
+        try {
+          await sendEmailVerification(credential.user)
+        } catch {
+          // A failed send must not break sign-in; the gate offers a resend.
+        }
+      }
       await refreshUser(true)
     } catch (error) {
       // Set here as well as at the form, so every surface that reads
