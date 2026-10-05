@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import Shell from '../components/Shell'
 import { useAuth } from '../features/auth/AuthContext'
-import { api, apiErrorMessage } from '../lib/api'
+import { api } from '../lib/api'
+import { friendlyError } from '../lib/errors'
 
 interface Subscription { plan: string; status: string; provider: string; current_period_end: string | null }
 
@@ -30,7 +31,7 @@ export default function BillingPage() {
         setMessage('Payment simulated (mock provider) — premium unlocked.')
       } else { setMessage('Real Razorpay checkout would open here.') }
       await refreshUser(); load()
-    } catch (err) { setError(apiErrorMessage(err)) }
+    } catch (err) { setError(friendlyError(err)) }
     finally { setBusy(false) }
   }
 

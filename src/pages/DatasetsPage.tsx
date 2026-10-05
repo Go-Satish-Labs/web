@@ -4,7 +4,8 @@ import QuotaBar from '../components/QuotaBar'
 import RocketDialog from '../components/RocketDialog'
 import RetentionNotice, { RetentionTag } from '../components/RetentionNotice'
 import Shell from '../components/Shell'
-import { api, apiErrorMessage, type Dataset, type UsageInfo } from '../lib/api'
+import { api, type Dataset, type UsageInfo } from '../lib/api'
+import { friendlyError } from '../lib/errors'
 
 const STATUS: Record<string, { label: string; color: string; bg: string; border: string }> = {
   analyzed: { label: 'Ready',     color: '#16a34a', bg: '#f0fdf4', border: 'rgba(22,163,74,0.2)' },
@@ -97,7 +98,7 @@ export default function DatasetsPage() {
       // onLanded callback (from RocketDialog) will trigger pollAndNavigate
     } catch (err) {
       setRocket(null)
-      setError(apiErrorMessage(err))
+      setError(friendlyError(err))
       setUploading(false)
       if (fileRef.current) fileRef.current.value = ''
     }
@@ -133,7 +134,7 @@ export default function DatasetsPage() {
       setConfirmingId(null)
       await load()
     } catch (err) {
-      setDeleteError(apiErrorMessage(err))
+      setDeleteError(friendlyError(err))
       setConfirmingId(null)
     } finally {
       setDeletingId(null)

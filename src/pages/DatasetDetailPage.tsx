@@ -8,7 +8,8 @@ import {
 import Shell from '../components/Shell'
 import PredictionSetup from '../components/PredictionSetup'
 import ShareButton from '../components/ShareButton'
-import { api, apiErrorMessage, type ChartSpec, type DashboardConfig, type DataStructure, type Prediction } from '../lib/api'
+import { api, type ChartSpec, type DashboardConfig, type DataStructure, type Prediction } from '../lib/api'
+import { friendlyError } from '../lib/errors'
 
 /* ── helpers ── */
 function fn(raw: string): string {
@@ -400,7 +401,7 @@ function ExportBtn({ datasetId }: { datasetId: string }) {
       setTimeout(() => URL.revokeObjectURL(url), 30_000)
       setOpen(false)
     } catch (err) {
-      setError(apiErrorMessage(err))
+      setError(friendlyError(err))
     } finally {
       setBusy(null)
     }

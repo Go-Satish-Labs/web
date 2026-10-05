@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { api, apiErrorMessage, BASE_URL, type Prediction } from '../lib/api'
+import { api, BASE_URL, type Prediction } from '../lib/api'
+import { friendlyError } from '../lib/errors'
 
 const BASE = BASE_URL
 
@@ -63,7 +64,7 @@ export default function ShareButton({ datasetId, mode, prediction }: {
     setError(''); setCreated(null); setCopiedToken(null)
     api.get<ShareLink[]>('/dashboards/shared/list')
       .then(({ data }) => setLinks(data.filter(l => l.mode === mode)))
-      .catch((e) => setError(apiErrorMessage(e)))
+      .catch((e) => setError(friendlyError(e)))
   }, [open, mode])
 
   async function create() {
@@ -80,7 +81,7 @@ export default function ShareButton({ datasetId, mode, prediction }: {
       setCreated(data.url)
       setLinks(l => [{ ...data, view_count: 0, expired: false }, ...l])
     } catch (e) {
-      setError(apiErrorMessage(e))
+      setError(friendlyError(e))
     } finally { setBusy(false) }
   }
 
@@ -90,7 +91,7 @@ export default function ShareButton({ datasetId, mode, prediction }: {
       await api.delete(`/dashboards/shared/${token}`)
       setLinks(l => l.filter(x => x.token !== token))
       if (created && created.endsWith(token)) setCreated(null)
-    } catch (e) { setError(apiErrorMessage(e)) }
+    } catch (e) { setError(friendlyError(e)) }
   }
 
   /**

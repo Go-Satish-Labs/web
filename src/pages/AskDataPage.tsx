@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import Shell from '../components/Shell'
 import ForecastChart, { INTENT_LABELS } from '../components/ForecastChart'
+import { friendlyError } from '../lib/errors'
 import {
-  api, apiErrorMessage,
+  api,
   type AskResponse, type Dataset, type Forecast, type AskInterpretation,
 } from '../lib/api'
 
@@ -58,7 +59,7 @@ export default function AskDataPage() {
         forecast: data.forecast,
       }])
       setRemaining(data.remaining_ai_questions)
-    } catch (err) { setError(apiErrorMessage(err)) }
+    } catch (err) { setError(friendlyError(err)) }
     finally { setBusy(false) }
   }
 

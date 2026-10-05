@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import PredictionsPanel from './PredictionsPanel'
-import { api, apiErrorMessage, type PredictOptions, type Prediction } from '../lib/api'
+import { api, type PredictOptions, type Prediction } from '../lib/api'
+import { friendlyError } from '../lib/errors'
 
 function human(raw: string | null | undefined): string {
   if (!raw) return ''
@@ -51,7 +52,7 @@ export default function PredictionSetup({ datasetId, onResult }: {
           (data.numeric_columns.filter(c => c !== data.suggested_target)).slice(0, 6)
         )
       })
-      .catch((e) => { if (!cancelled) setError(apiErrorMessage(e)) })
+      .catch((e) => { if (!cancelled) setError(friendlyError(e)) })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [datasetId])
@@ -73,7 +74,7 @@ export default function PredictionSetup({ datasetId, onResult }: {
       setResult(data.prediction)
       onResult?.(data.prediction)
     } catch (e) {
-      setError(apiErrorMessage(e))
+      setError(friendlyError(e))
     } finally { setBusy(false) }
   }
 

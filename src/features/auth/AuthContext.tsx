@@ -9,6 +9,7 @@ import {
   signOut,
 } from 'firebase/auth'
 import { api } from '../../lib/api'
+import { friendlyError } from '../../lib/errors'
 import { firebaseAuth } from '../../lib/firebase'
 
 interface User {
@@ -73,21 +74,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function login(email: string, password: string) {
     setAuthError('')
-    await signInWithEmailAndPassword(firebaseAuth, email, password)
-    await refreshUser(true)
+    try {
+      await signInWithEmailAndPassword(firebaseAuth, email, password)
+      await refreshUser(true)
+    } catch (error) {
+      // Set here as well as at the form, so every surface that reads
+      // authError shows the same wording rather than a bare Firebase code.
+      setAuthError(friendlyError(error, 'We could not sign you in. Please try again.'))
+      throw error
+    }
   }
 
   async function register(email: string, password: string) {
     setAuthError('')
-    await createUserWithEmailAndPassword(firebaseAuth, email, password)
-    await refreshUser(true)
+    try {
+      await createUserWithEmailAndPassword(firebaseAuth, email, password)
+      await refreshUser(true)
+    } catch (error) {
+      setAuthError(friendlyError(error, 'We could not create your account. Please try again.'))
+      throw error
+    }
   }
 
   async function continueWithProvider(provider: 'google' | 'github') {
     setAuthError('')
-    const authProvider = provider === 'google' ? new GoogleAuthProvider() : new GithubAuthProvider()
-    await signInWithPopup(firebaseAuth, authProvider)
-    await refreshUser(true)
+    try {
+      const authProvider = provider === 'google' ? new GoogleAuthProvider() : new GithubAuthProvider()
+      await signInWithPopup(firebaseAuth, authProvider)
+      await refreshUser(true)
+    } catch (error) {
+      setAuthError(friendlyError(error, 'We could not complete that sign-in. Please try again.'))
+      throw error
+    }
   }
 
   function logout() {

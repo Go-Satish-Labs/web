@@ -2,7 +2,7 @@ import { useState, useEffect, type FormEvent } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 import { useAuth } from '../features/auth/AuthContext'
-import { apiErrorMessage } from '../lib/api'
+import { friendlyError } from '../lib/errors'
 import OAuthButtons from '../components/OAuthButtons'
 import Logo from '../components/Logo'
 import VirtualPets from '../components/VirtualPets'
@@ -234,7 +234,7 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
     e.preventDefault()
     setError(''); setBusy(true)
     try { await login(email, password); onSuccess(); navigate('/') }
-    catch (err) { setError(apiErrorMessage(err)) }
+    catch (err) { setError(friendlyError(err)) }
     finally { setBusy(false) }
   }
 
@@ -269,7 +269,7 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
     e.preventDefault()
     setError(''); setBusy(true)
     try { await register(email, password); onSuccess(); navigate('/') }
-    catch (err) { setError(apiErrorMessage(err)) }
+    catch (err) { setError(friendlyError(err)) }
     finally { setBusy(false) }
   }
 

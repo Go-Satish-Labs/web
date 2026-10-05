@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../features/auth/AuthContext'
-import { apiErrorMessage } from '../lib/api'
+import { friendlyError } from '../lib/errors'
 
 const GoogleIcon = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
@@ -33,7 +33,7 @@ export default function OAuthButtons({ dark }: Props) {
       await continueWithProvider(provider)
       navigate('/')
     } catch (err) {
-      setError(apiErrorMessage(err))
+      setError(friendlyError(err))
     } finally {
       setBusy(null)
     }

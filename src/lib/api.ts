@@ -25,15 +25,9 @@ api.interceptors.request.use(async (config) => {
   return config
 })
 
-export function apiErrorMessage(err: unknown): string {
-  const anyErr = err as any
-  const detail = anyErr?.response?.data?.detail
-  if (typeof detail === 'string' && detail) return detail
-  if (anyErr?.response?.status === 503) {
-    return 'The workspace service is temporarily unavailable: its database is offline. Nothing was lost - please retry in a moment.'
-  }
-  return anyErr?.message || 'Something went wrong'
-}
+// Error wording lives in lib/errors.ts, which also understands Firebase auth
+// codes. This helper only unwrapped axios, so a Firebase failure fell through
+// to `err.message` and the user saw "Firebase: Error (auth/invalid-credential)".
 
 /** True when the backend answered 503, i.e. it is up but its database is not. */
 export function isServiceUnavailable(err: unknown): boolean {

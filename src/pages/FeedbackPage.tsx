@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import Shell from '../components/Shell'
-import { api, apiErrorMessage, type Feedback } from '../lib/api'
+import { api, type Feedback } from '../lib/api'
+import { friendlyError } from '../lib/errors'
 
 const CATEGORIES = [
   { id: 'bug', label: 'Something is broken', hint: 'A button that does nothing, wrong numbers, an error message' },
@@ -49,7 +50,7 @@ export default function FeedbackPage() {
       setMine(m => [data, ...m])
       setMessage(''); setRating(null)
     } catch (e) {
-      setError(apiErrorMessage(e))
+      setError(friendlyError(e))
     } finally { setBusy(false) }
   }
 

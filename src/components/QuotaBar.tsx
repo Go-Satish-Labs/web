@@ -41,7 +41,7 @@ export default function QuotaBar({ usage }: { usage: UsageInfo | null }) {
     ? usage.usage.datasets - stored
     : 0
   const datasetLabel = deleted > 0
-    ? `Datasets (${deleted} deleted, still counted)`
+    ? `Datasets (${deleted} deleted)`
     : 'Datasets'
 
   return (
