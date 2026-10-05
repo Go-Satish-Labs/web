@@ -223,5 +223,14 @@ export interface DashboardConfig {
 export interface UsageInfo {
   plan: string
   limits: { max_datasets: number; max_storage_mb: number; max_dashboards: number; max_ai_questions: number }
-  usage: { datasets: number; dashboards: number; storage_mb: number }
+  usage: {
+    /** Uploads metered against the plan. Deleting a file does not free a
+        slot, so the limit cannot be churned by upload-delete-upload. */
+    datasets: number
+    /** Files actually stored right now. Lower than `datasets` once something
+        has been deleted. */
+    current_datasets?: number
+    dashboards: number
+    storage_mb: number
+  }
 }

@@ -34,13 +34,23 @@ function UsageBar({ used, max, label }: { used: number; max: number; label: stri
 export default function QuotaBar({ usage }: { usage: UsageInfo | null }) {
   if (!usage) return null
 
+  // Deleting a file does not return its slot, so the meter can sit above the
+  // number of files actually on disk. Say so, or it reads as a stuck counter.
+  const stored = usage.usage.current_datasets
+  const deleted = typeof stored === 'number' && stored < usage.usage.datasets
+    ? usage.usage.datasets - stored
+    : 0
+  const datasetLabel = deleted > 0
+    ? `Datasets (${deleted} deleted, still counted)`
+    : 'Datasets'
+
   return (
     <div style={{
       display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 24,
       padding: '16px 20px', borderRadius: 12, marginBottom: 24,
       background: '#ffffff', border: '1.5px solid #e8e8e8',
     }}>
-      <UsageBar used={usage.usage.datasets} max={usage.limits.max_datasets} label="Datasets" />
+      <UsageBar used={usage.usage.datasets} max={usage.limits.max_datasets} label={datasetLabel} />
       <UsageBar used={Math.round(usage.usage.storage_mb)} max={usage.limits.max_storage_mb} label="Storage (MB)" />
       <UsageBar used={usage.usage.dashboards} max={usage.limits.max_dashboards} label="Dashboards" />
       {usage.plan === 'free' && (
