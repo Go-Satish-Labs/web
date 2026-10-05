@@ -4,6 +4,7 @@ import {
   GithubAuthProvider,
   GoogleAuthProvider,
   onIdTokenChanged,
+  sendEmailVerification,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
@@ -26,6 +27,11 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>
   register: (email: string, password: string) => Promise<void>
   continueWithProvider: (provider: 'google' | 'github') => Promise<void>
+  /** True when Firebase has not yet confirmed the address, which holds the
+      person out of the app until they click the link we emailed them. */
+  awaitingVerification: boolean
+  resendVerificationEmail: () => Promise<boolean>
+  refreshVerificationStatus: () => Promise<boolean>
   logout: () => void
   refreshUser: () => Promise<void>
 }
@@ -36,6 +42,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [authError, setAuthError] = useState('')
+  // Google and GitHub sign-ins arrive already verified, so this only turns on
+  // for a password sign-up that has not clicked the emailed link yet.
+  const [awaitingVerification, setAwaitingVerification] = useState(false)
 
   async function refreshUser(throwOnFailure = false) {
     if (!firebaseAuth.currentUser) {
@@ -48,9 +57,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(data)
       setAuthError('')
     } catch (error) {
-      const response = (error as { response?: { status?: number } })?.response
+      const response = (error as { response?: { status?: number; data?: { detail?: string } } })?.response
       const status = response?.status
-      if (status === 503) {
+      if (status === 403 && /verify/i.test(String(response?.data?.detail ?? ''))) {
+        // The API refuses unverified tokens. This is the expected first step
+        // after signing up, not a failure, so it gets its own state rather than
+        // an error the person has to dismiss.
+        setAwaitingVerification(true)
+        setUser(null)
+        setLoading(false)
+        if (throwOnFailure) return
+        return
+      } else if (status === 503) {
         // Backend is running but cannot reach its database (see Brain/DATABASE.md).
         setAuthError('Your sign-in worked, but the workspace service cannot reach its database right now. No data was lost - please try again in a minute.')
       } else if (status === 502) {
@@ -88,12 +106,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function register(email: string, password: string) {
     setAuthError('')
     try {
-      await createUserWithEmailAndPassword(firebaseAuth, email, password)
+      const credential = await createUserWithEmailAndPassword(firebaseAuth, email, password)
+      // Send the verification email immediately. Nothing else is gated on it
+      // here - the API refuses an unverified token - but sending it now means
+      // the inbox already has it by the time they read the next screen.
+      await sendEmailVerification(credential.user)
       await refreshUser(true)
     } catch (error) {
       setAuthError(friendlyError(error, 'We could not create your account. Please try again.'))
       throw error
     }
+  }
+
+  /** Re-send the verification email for the signed-in user. */
+  async function resendVerificationEmail() {
+    const current = firebaseAuth.currentUser
+    if (!current) return false
+    await sendEmailVerification(current)
+    return true
+  }
+
+  /**
+   * Checks whether the user has verified their address and refreshes the ID
+   * token if so.
+   *
+   * The token is cached by Firebase and still says email_verified: false
+   * after the user clicks the link, so a plain `currentUser` check never
+   * notices. `getIdToken(true)` forces a refresh from the server, which is
+   * what actually carries the new claim.
+   */
+  async function refreshVerificationStatus() {
+    const current = firebaseAuth.currentUser
+    if (!current) return false
+    await current.reload()
+    if (current.emailVerified) {
+      await current.getIdToken(true)
+      return true
+    }
+    return false
   }
 
   async function continueWithProvider(provider: 'google' | 'github') {
@@ -114,7 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, authError, login, register, continueWithProvider, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, authError, login, register, continueWithProvider, logout, refreshUser, awaitingVerification, resendVerificationEmail, refreshVerificationStatus }}>
       {children}
     </AuthContext.Provider>
   )
