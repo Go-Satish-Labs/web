@@ -220,7 +220,7 @@ export default function SettingsPage() {
         <SecurityModal
           existing={secQ}
           onClose={() => setShowSecModal(false)}
-          onSaved={q => { setSecQ(q); setHasSecQ(true); setShowSecModal(false); setConfirming(false) }}
+          onSaved={q => { setSecQ(q); setHasSecQ(true); setShowSecModal(false) }}
         />
       )}
 
@@ -350,9 +350,6 @@ export default function SettingsPage() {
               )}
             </div>
           </div>
-          {confirming && (
-            <p style={{ fontSize: 13, color: 'var(--g1)', marginTop: 10 }}>Removing it turns off password recovery for this account.</p>
-          )}
         </section>
       </div>
     </Shell>
