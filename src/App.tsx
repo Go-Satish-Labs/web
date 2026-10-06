@@ -10,6 +10,7 @@ import DatasetDetailPage from './pages/DatasetDetailPage'
 import DatasetsPage from './pages/DatasetsPage'
 import FeedbackPage from './pages/FeedbackPage'
 import LandingPage from './pages/LandingPage'
+import SettingsPage from './pages/SettingsPage'
 
 /**
  * Plays the boot sequence once on every load, and keeps playing it until the
@@ -79,6 +80,7 @@ export default function App() {
             <Route path="/ask"      element={<RequireAuth><AskDataPage /></RequireAuth>} />
             <Route path="/feedback" element={<RequireAuth><FeedbackPage /></RequireAuth>} />
             <Route path="/billing"  element={<RequireAuth><BillingPage /></RequireAuth>} />
+            <Route path="/settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />
             <Route path="*"         element={<Navigate to="/" replace />} />
           </Routes>
         </BootGate>

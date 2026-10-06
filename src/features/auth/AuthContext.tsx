@@ -18,6 +18,7 @@ interface User {
   email: string
   plan: string
   role: string
+  hasSecurityQuestion?: boolean
 }
 
 interface AuthContextValue {

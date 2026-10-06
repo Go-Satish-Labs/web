@@ -291,11 +291,10 @@ function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
       })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.detail || 'No security question found for this account.')
-      }
       const data = await res.json()
+      if (!res.ok || !data.has_security_question) {
+        throw new Error(data.has_security_question ? (data.security_question ? '' : 'No security question found.') : 'No security question set up for this account. Use the "Forgot password?" option on the login page after signing in with Google/GitHub, or contact support.')
+      }
       setSecurityQuestion(data.security_question)
       setStep('answer')
     } catch (err) {
