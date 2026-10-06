@@ -55,16 +55,6 @@ function SecurityGatePopup({ onClose, onGoSetup }: { onClose: () => void; onGoSe
           >
             Set up security question →
           </button>
-          <button
-            onClick={onClose}
-            style={{
-              width: '100%', padding: '13px', borderRadius: 10,
-              border: '1.5px solid #e8e8e8', background: '#fff',
-              color: '#6b6b6b', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-            }}
-          >
-            Maybe later
-          </button>
         </div>
       </div>
     </div>
