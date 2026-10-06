@@ -229,11 +229,12 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setError(''); setBusy(true)
-    try { await login(email, password); onSuccess(); navigate('/') }
+    try { await login(email, password); onSuccess(); navigate('/datasets') }
     catch (err) { setError(friendlyError(err)) }
     finally { setBusy(false) }
   }
@@ -242,16 +243,142 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
     <div>
       <OAuthButtons />
       <Divider />
-      <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <FormField label="Email">
-          <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" style={inputStyle} />
-        </FormField>
-        <FormField label="Password">
-          <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" style={inputStyle} />
-        </FormField>
-        {(error || authError) && <ErrBox msg={authError || error} />}
-        <Btn busy={busy} label="Sign in" busyLabel="Signing in…" />
-      </form>
+      {showForgotPassword ? (
+        <ForgotPasswordForm onBack={() => setShowForgotPassword(false)} />
+      ) : (
+        <>
+          <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <FormField label="Email">
+              <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" style={inputStyle} />
+            </FormField>
+            <FormField label="Password">
+              <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" style={inputStyle} />
+            </FormField>
+            {(error || authError) && <ErrBox msg={authError || error} />}
+            <Btn busy={busy} label="Sign in" busyLabel="Signing in…" />
+          </form>
+          <p style={{ textAlign: 'center', marginTop: 12 }}>
+            <button
+              type="button"
+              onClick={() => setShowForgotPassword(true)}
+              style={{ background: 'none', border: 'none', color: '#6b6b6b', fontSize: 13, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+            >
+              Forgot password?
+            </button>
+          </p>
+        </>
+      )}
+    </div>
+  )
+}
+
+/* ── Forgot Password Form ── */
+function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
+  const { authError } = useAuth()
+  const [step, setStep] = useState<'email' | 'answer'>('email')
+  const [email, setEmail] = useState('')
+  const [securityQuestion, setSecurityQuestion] = useState('')
+  const [securityAnswer, setSecurityAnswer] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [success, setSuccess] = useState(false)
+
+  async function fetchSecurityQuestion() {
+    setError(''); setBusy(true)
+    try {
+      const res = await fetch('/api/auth/forgot-password/question', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.detail || 'No security question found for this account.')
+      }
+      const data = await res.json()
+      setSecurityQuestion(data.security_question)
+      setStep('answer')
+    } catch (err) {
+      setError(friendlyError(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function verifySecurityAnswer() {
+    setError(''); setBusy(true)
+    try {
+      const res = await fetch('/api/auth/forgot-password/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, security_answer: securityAnswer })
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.detail || 'Incorrect security answer.')
+      }
+      // Trigger Firebase password reset email
+      const { firebaseAuth } = await import('../../lib/firebase')
+      const { sendPasswordResetEmail } = await import('firebase/auth')
+      await sendPasswordResetEmail(firebaseAuth, email)
+      setSuccess(true)
+    } catch (err) {
+      setError(friendlyError(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (success) {
+    return (
+      <div style={{ textAlign: 'center', padding: '20px 0' }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>✓</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: '#0a0a0a', marginBottom: 8 }}>
+          Reset email sent
+        </div>
+        <p style={{ fontSize: 14, color: '#6b6b6b', lineHeight: 1.6, marginBottom: 24 }}>
+          Check your inbox for the password reset link. The link expires in a few minutes.
+        </p>
+        <Btn label="Back to sign in" onClick={onBack} />
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
+        <button
+          type="button"
+          onClick={onBack}
+          style={{ background: 'none', border: 'none', color: '#6b6b6b', fontSize: 13, cursor: 'pointer', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 4 }}
+        >
+          ← Back
+        </button>
+        <div style={{ fontSize: 16, fontWeight: 700, color: '#0a0a0a' }}>
+          {step === 'email' ? 'Forgot password' : 'Verify identity'}
+        </div>
+      </div>
+
+      {step === 'email' ? (
+        <form onSubmit={e => { e.preventDefault(); fetchSecurityQuestion() }} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <FormField label="Email">
+            <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" style={inputStyle} />
+          </FormField>
+          {(error || authError) && <ErrBox msg={authError || error} />}
+          <Btn busy={busy} label="Continue" busyLabel="Checking…" />
+        </form>
+      ) : (
+        <form onSubmit={e => { e.preventDefault(); verifySecurityAnswer() }} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ padding: '12px 16px', background: '#f9f9f9', borderRadius: 8, border: '1px solid #e8e8e8', fontSize: 13, color: '#0a0a0a', lineHeight: 1.5 }}>
+            <strong>Security question:</strong> {securityQuestion}
+          </div>
+          <FormField label="Your answer">
+            <input type="text" required value={securityAnswer} onChange={e => setSecurityAnswer(e.target.value)} placeholder="Enter your answer" style={inputStyle} />
+          </FormField>
+          {(error || authError) && <ErrBox msg={authError || error} />}
+          <Btn busy={busy} label="Submit" busyLabel="Verifying…" />
+        </form>
+      )}
     </div>
   )
 }
@@ -262,13 +389,15 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [securityQuestion, setSecurityQuestion] = useState('')
+  const [securityAnswer, setSecurityAnswer] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setError(''); setBusy(true)
-    try { await register(email, password); onSuccess(); navigate('/') }
+    try { await register(email, password, securityQuestion, securityAnswer); onSuccess(); navigate('/datasets') }
     catch (err) { setError(friendlyError(err)) }
     finally { setBusy(false) }
   }
@@ -284,6 +413,15 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
         <FormField label="Password">
           <input type="password" required minLength={8} value={password} onChange={e => setPassword(e.target.value)} placeholder="min 8 characters" style={inputStyle} />
         </FormField>
+        <FormField label="Security question">
+          <input type="text" required value={securityQuestion} onChange={e => setSecurityQuestion(e.target.value)} placeholder="e.g., What was your first pet's name?" style={inputStyle} />
+        </FormField>
+        <FormField label="Security answer">
+          <input type="text" required value={securityAnswer} onChange={e => setSecurityAnswer(e.target.value)} placeholder="Your answer" style={inputStyle} />
+        </FormField>
+        <p style={{ fontSize: 11, color: '#a8a8a8', lineHeight: 1.5 }}>
+          Used to verify your identity if you forget your password.
+        </p>
         {(error || authError) && <ErrBox msg={authError || error} />}
         <Btn busy={busy} label="Create free account" busyLabel="Creating…" />
       </form>

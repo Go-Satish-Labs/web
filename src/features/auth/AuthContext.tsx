@@ -25,7 +25,7 @@ interface AuthContextValue {
   loading: boolean
   authError: string
   login: (email: string, password: string) => Promise<void>
-  register: (email: string, password: string) => Promise<void>
+  register: (email: string, password: string, securityQuestion: string, securityAnswer: string) => Promise<void>
   continueWithProvider: (provider: 'google' | 'github') => Promise<void>
   /** True when Firebase has not yet confirmed the address, which holds the
       person out of the app until they click the link we emailed them. */
@@ -45,6 +45,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Google and GitHub sign-ins arrive already verified, so this only turns on
   // for a password sign-up that has not clicked the emailed link yet.
   const [awaitingVerification, setAwaitingVerification] = useState(false)
+  // Pending security question/answer to save after email verification
+  const [pendingSecurity, setPendingSecurity] = useState<{ question: string; answer: string } | null>(null)
+
+  async function savePendingSecurity() {
+    if (!pendingSecurity || !user) return
+    try {
+      await api.patch('/auth/me', {
+        security_question: pendingSecurity.question,
+        security_answer: pendingSecurity.answer
+      })
+    } catch {
+      // Silently fail - user can set it later
+    }
+    setPendingSecurity(null)
+  }
 
   async function refreshUser(throwOnFailure = false) {
     if (!firebaseAuth.currentUser) {
@@ -56,6 +71,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data } = await api.get('/auth/me')
       setUser(data)
       setAuthError('')
+      // If we have pending security info and user is now verified, save it
+      if (pendingSecurity) {
+        await savePendingSecurity()
+      }
     } catch (error) {
       const response = (error as { response?: { status?: number; data?: { detail?: string } } })?.response
       const status = response?.status
@@ -114,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function register(email: string, password: string) {
+  async function register(email: string, password: string, securityQuestion: string, securityAnswer: string) {
     setAuthError('')
     try {
       const credential = await createUserWithEmailAndPassword(firebaseAuth, email, password)
@@ -122,6 +141,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // here - the API refuses an unverified token - but sending it now means
       // the inbox already has it by the time they read the next screen.
       await sendEmailVerification(credential.user)
+      // Store security question/answer to save after verification
+      setPendingSecurity({ question: securityQuestion, answer: securityAnswer })
       await refreshUser(true)
     } catch (error) {
       setAuthError(friendlyError(error, 'We could not create your account. Please try again.'))
@@ -152,6 +173,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await current.reload()
     if (current.emailVerified) {
       await current.getIdToken(true)
+      // Trigger refreshUser to save any pending security info
+      await refreshUser()
       return true
     }
     return false
