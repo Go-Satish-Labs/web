@@ -176,7 +176,7 @@ export default function SettingsPage() {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {user?.displayName || emailUsername.split('@')[0]}
+                {user?.displayName || emailUsername}
               </div>
               <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {emailUsername}
@@ -229,7 +229,6 @@ export default function SettingsPage() {
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Account</div>
           {[
             { label: 'Email', value: emailUsername },
-            { label: 'Username', value: emailUsername },
             { label: 'Plan', value: (user?.plan ?? 'free').charAt(0).toUpperCase() + (user?.plan ?? 'free').slice(1) },
             { label: 'Role', value: (user?.role ?? 'member').charAt(0).toUpperCase() + (user?.role ?? 'member').slice(1) },
           ].map(row => (
