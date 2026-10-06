@@ -2,35 +2,34 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #f9f9f9;
+  --bg: #ffffff;
   --bg-white: #ffffff;
-  --bg-subtle: #f3f3f3;
+  --bg-subtle: #f5f5f5;
 
-  --border: #e8e8e8;
-  --border-strong: #d0d0d0;
+  --border: #e0e0e0;
+  --border-strong: #bdbdbd;
 
   --text: #0a0a0a;
-  --text-muted: #6b6b6b;
-  --text-subtle: #a8a8a8;
+  --text-muted: #525252;
+  --text-subtle: #a3a3a3;
 
   --accent: #0a0a0a;
-  --accent-light: #f3f3f3;
+  --accent-light: #f5f5f5;
   --accent-glow: rgba(0,0,0,0.08);
 
-  /* Brand palette, taken from the logo artwork - a gold-to-teal ribbon - so
-     navigation, accents and the favicon read as one system. */
-  --brand: #0f766e;
-  --brand-deep: #115e59;
-  --brand-gold: #d97706;
-  --brand-tint: #f0fdfa;
-  --brand-tint-2: #ccfbf1;
+  /* Brand palette - black/white monochrome */
+  --brand: #0a0a0a;
+  --brand-deep: #0a0a0a;
+  --brand-gold: #0a0a0a;
+  --brand-tint: #f5f5f5;
+  --brand-tint-2: #e5e5e5;
 
-  --good: #16a34a;
-  --good-light: #f0fdf4;
+  --good: #0a0a0a;
+  --good-light: #f5f5f5;
   --bad: #dc2626;
   --bad-light: #fef2f2;
-  --warn: #ca8a04;
-  --warn-light: #fefce8;
+  --warn: #737373;
+  --warn-light: #f5f5f5;
 }
 
 * { box-sizing: border-box; }
@@ -342,7 +341,7 @@ button { font-family: inherit; cursor: pointer; }
 .pet-trail {
   position: absolute;
   inset: -14px -8px -14px -8px;
-  background: radial-gradient(circle, rgba(99,102,241,0.18), transparent 60%);
+  background: radial-gradient(circle, rgba(0,0,0,0.18), transparent 60%);
   border-radius: 50%;
   filter: blur(6px);
   opacity: 0;
