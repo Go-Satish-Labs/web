@@ -24,6 +24,7 @@ function SecurityGatePopup({ onClose, onGoSetup }: { onClose: () => void; onGoSe
           boxShadow: '0 24px 80px rgba(0,0,0,0.18)',
           textAlign: 'center',
         }}
+        className="modal-enter"
       >
         {/* Icon */}
         <div style={{
@@ -47,11 +48,8 @@ function SecurityGatePopup({ onClose, onGoSetup }: { onClose: () => void; onGoSe
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <button
             onClick={onGoSetup}
-            style={{
-              width: '100%', padding: '13px', borderRadius: 10, border: 'none',
-              background: '#0a0a0a', color: '#fff', fontSize: 14, fontWeight: 700,
-              cursor: 'pointer',
-            }}
+            className="btn-base btn-solid"
+            style={{ width: '100%', padding: '13px', borderRadius: 10, fontSize: 14, fontWeight: 700 }}
           >
             Set up security question →
           </button>

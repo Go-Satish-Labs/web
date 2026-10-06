@@ -73,6 +73,164 @@ main input:focus, main select:focus, main textarea:focus {
   to   { transform: rotate(360deg); }
 }
 
+/* ════════════════════════════════════════════════
+   GLOBAL MICRO-INTERACTION SYSTEM
+   Apply these classes anywhere in the app.
+   ════════════════════════════════════════════════ */
+
+/* Page-level entry — wrap each page's root div */
+.page-enter {
+  animation: pageEnter 0.55s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Staggered children — add --i CSS var for delay */
+.rise {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: rise 0.6s cubic-bezier(.22,1,.36,1) forwards;
+  animation-delay: calc(var(--i, 0) * 80ms);
+}
+@keyframes rise {
+  to { opacity: 1; transform: none; }
+}
+
+/* Universal card hover lift */
+.card-hover {
+  transition: transform 0.28s cubic-bezier(.22,1,.36,1), box-shadow 0.28s cubic-bezier(.22,1,.36,1);
+}
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px -8px rgba(0,0,0,0.13);
+}
+
+/* Universal button — active scale + hover invert */
+.btn-base {
+  position: relative; overflow: hidden;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.12s, box-shadow 0.15s;
+}
+.btn-base:active:not(:disabled) { transform: scale(0.95); }
+.btn-base:disabled { cursor: not-allowed; opacity: 0.45; }
+
+/* Solid dark button */
+.btn-solid {
+  background: var(--text); color: var(--bg-white);
+  border: 1.5px solid var(--text); border-radius: 10px;
+  font-size: 13px; font-weight: 700; padding: 9px 18px;
+  cursor: pointer; font-family: inherit;
+}
+.btn-solid:hover:not(:disabled) { background: var(--bg-white); color: var(--text); }
+
+/* Ghost button */
+.btn-ghost {
+  background: var(--bg-white); color: var(--text);
+  border: 1.5px solid var(--border); border-radius: 10px;
+  font-size: 13px; font-weight: 600; padding: 9px 18px;
+  cursor: pointer; font-family: inherit;
+}
+.btn-ghost:hover:not(:disabled) { border-color: var(--text); }
+
+/* Close / X button — rotates on hover */
+.btn-close {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 1.5px solid var(--border); background: var(--bg-subtle);
+  color: var(--text-muted); cursor: pointer; font-family: inherit;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; line-height: 1;
+  transition: transform 0.3s cubic-bezier(.22,1,.36,1), border-color 0.15s, background 0.15s;
+}
+.btn-close:hover { transform: rotate(90deg); border-color: var(--text); background: var(--bg-white); color: var(--text); }
+
+/* Input focus lift */
+.input-base {
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.2s cubic-bezier(.22,1,.36,1);
+}
+.input-base:focus { transform: translateY(-1px); }
+
+/* Row hover slide */
+.row-hover {
+  transition: padding-left 0.25s cubic-bezier(.22,1,.36,1), background 0.2s;
+}
+.row-hover:hover { padding-left: 10px; background: var(--bg-subtle); }
+
+/* Toast / alert shake */
+.shake {
+  animation: shake 0.4s cubic-bezier(.22,1,.36,1);
+}
+@keyframes shake {
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(2px); }
+  100% { transform: none; }
+}
+
+/* Pop-in for toasts/success messages */
+.pop-in {
+  animation: popIn 0.4s cubic-bezier(.22,1,.36,1);
+}
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.92); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Fade-in for modals/overlays */
+.fade-in {
+  animation: fadeIn 0.25s ease;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Modal panel slide-up */
+.modal-enter {
+  animation: modalEnter 0.4s cubic-bezier(.34,1.4,.64,1);
+}
+@keyframes modalEnter {
+  from { opacity: 0; transform: translateY(24px) scale(0.95); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Skeleton pulse */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-subtle) 25%, var(--border) 50%, var(--bg-subtle) 75%);
+  background-size: 200% 100%;
+  animation: skeleton 1.4s ease-in-out infinite;
+  border-radius: 8px;
+}
+@keyframes skeleton {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Ripple on click — inject a .ripple span inside .btn-ripple */
+.btn-ripple { position: relative; overflow: hidden; }
+.ripple {
+  position: absolute; border-radius: 50%;
+  background: currentColor; opacity: 0.18;
+  transform: scale(0);
+  animation: ripple 0.55s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes ripple {
+  to { transform: scale(4); opacity: 0; }
+}
+
+/* Reduced motion — kill all decorative animations */
+@media (prefers-reduced-motion: reduce) {
+  .page-enter, .rise, .card-hover, .btn-base,
+  .btn-close, .input-base, .row-hover, .shake,
+  .pop-in, .fade-in, .modal-enter, .skeleton, .ripple {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+  .rise { opacity: 1; transform: none; }
+}
+
 ::selection { background: #0a0a0a; color: #fff; }
 a { color: inherit; text-decoration: none; }
 button { font-family: inherit; cursor: pointer; }

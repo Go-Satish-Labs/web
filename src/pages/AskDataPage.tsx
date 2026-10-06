@@ -15,7 +15,6 @@ interface ChatMessage {
   forecast?: Forecast | null
 }
 
-/** Example questions, phrased the way a person would actually type them. */
 const EXAMPLES = [
   'will sales increase in the next 10 days?',
   'what is the total revenue?',
@@ -65,109 +64,84 @@ export default function AskDataPage() {
 
   return (
     <Shell>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, color: '#0a0a0a', margin: 0, letterSpacing: '-0.02em' }}>Ask your data</h1>
-        <p style={{ fontSize: 14, color: '#6b6b6b', marginTop: 6 }}>Ask in plain language. Every number is calculated from your data — the AI only explains it.</p>
+      <div className="page-enter">
+        <div className="rise" style={{ '--i': 0 } as React.CSSProperties}>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: '#0a0a0a', margin: '0 0 6px', letterSpacing: '-0.02em' }}>Ask your data</h1>
+          <p style={{ fontSize: 14, color: '#6b6b6b', margin: '0 0 24px' }}>Ask in plain language. Every number is calculated from your data — the AI only explains it.</p>
+        </div>
+
+        {datasets.length === 0 ? (
+          <div className="rise" style={{ '--i': 1, borderRadius: 14, padding: '48px 40px', textAlign: 'center', background: '#ffffff', border: '2px dashed #e8e8e8', color: '#6b6b6b', fontSize: 14 } as React.CSSProperties}>
+            Upload and analyze a dataset first to start asking questions.
+          </div>
+        ) : (
+          <div className="ask-layout rise" style={{ '--i': 1, display: 'flex', flexDirection: 'column', height: 'calc(100vh - 240px)', minHeight: 400 } as React.CSSProperties}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 10, flexWrap: 'wrap' }}>
+              <select value={datasetId} onChange={(e) => setDatasetId(e.target.value)}
+                className="input-base"
+                style={{ padding: '9px 14px', fontSize: 13, fontWeight: 500, borderRadius: 10, minWidth: 220 }}>
+                {datasets.map((d) => <option key={d.id} value={d.id}>{d.original_filename}</option>)}
+              </select>
+              {remaining !== null && (
+                <span style={{ fontSize: 12, color: '#6b6b6b' }}>
+                  <span className="font-mono-num" style={{ color: remaining < 5 ? '#dc2626' : '#0a0a0a', fontWeight: 700 }}>{remaining}</span> AI questions left
+                </span>
+              )}
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', borderRadius: 12, padding: '20px', background: '#ffffff', border: '1.5px solid #e8e8e8', display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 12 }}>
+              {messages.length === 0 && (
+                <div style={{ margin: 'auto', maxWidth: 420, textAlign: 'center' }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#0a0a0a', marginBottom: 4 }}>What would you like to know?</div>
+                  <div style={{ fontSize: 12, color: '#a8a8a8', marginBottom: 14 }}>Pick one to try:</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {EXAMPLES.map(q => (
+                      <button key={q} onClick={() => setQuestion(q)} className="btn-base row-hover"
+                        style={{ padding: '8px 12px', borderRadius: 9, fontSize: 13, textAlign: 'left', border: '1.5px solid #e8e8e8', background: '#fafafa', color: '#0a0a0a', cursor: 'pointer' }}>
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {messages.map((m, i) => (
+                <div key={i} className="rise" style={{ '--i': i % 5, display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' } as React.CSSProperties}>
+                  <div style={{ maxWidth: m.role === 'user' ? '78%' : '88%', minWidth: 0 }}>
+                    {m.role === 'assistant' && m.interpretation?.metric && m.interpretation.intent !== 'unknown' && (
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 6, fontSize: 11, color: '#6b6b6b', background: '#f3f3f3', padding: '3px 9px', borderRadius: 999 }}>
+                        <span style={{ fontWeight: 700, color: '#0a0a0a' }}>{INTENT_LABELS[m.interpretation.intent] ?? m.interpretation.intent}</span>
+                        {m.interpretation.metric && <span>· {m.interpretation.metric}</span>}
+                        {m.interpretation.horizon && <span>· next {m.interpretation.horizon} {m.interpretation.horizon_unit}</span>}
+                      </div>
+                    )}
+                    <div style={{ padding: '10px 14px', borderRadius: 12, fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap', background: m.role === 'user' ? '#0a0a0a' : '#f3f3f3', color: m.role === 'user' ? '#fff' : '#0a0a0a', borderBottomRightRadius: m.role === 'user' ? 4 : 12, borderBottomLeftRadius: m.role === 'assistant' ? 4 : 12 }}>{m.content}</div>
+                    {m.forecast && <ForecastChart forecast={m.forecast} />}
+                    {m.disclaimer && <div style={{ fontSize: 11, color: '#a8a8a8', marginTop: 6, paddingLeft: 4 }}>{m.disclaimer}</div>}
+                  </div>
+                </div>
+              ))}
+              {busy && (
+                <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                  <div className="pop-in" style={{ padding: '10px 14px', borderRadius: 12, borderBottomLeftRadius: 4, fontSize: 14, background: '#f3f3f3', color: '#6b6b6b' }}>Working it out…</div>
+                </div>
+              )}
+              <div ref={bottomRef} />
+            </div>
+
+            {error && <div className="shake" style={{ fontSize: 13, color: '#dc2626', marginBottom: 8 }}>{error}</div>}
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input value={question} onChange={(e) => setQuestion(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && ask()}
+                placeholder="Ask a question about this dataset…" className="input-base"
+                style={{ flex: 1, padding: '11px 14px', fontSize: 14, borderRadius: 10 }} disabled={busy} />
+              <button onClick={ask} disabled={busy || !question.trim()} className="btn-base btn-solid">
+                Send
+              </button>
+            </div>
+          </div>
+        )}
       </div>
-
-      {datasets.length === 0 ? (
-        <div style={{ borderRadius: 14, padding: '48px 40px', textAlign: 'center', background: '#ffffff', border: '2px dashed #e8e8e8', color: '#6b6b6b', fontSize: 14 }}>
-          Upload and analyze a dataset first to start asking questions.
-        </div>
-      ) : (
-        <div className="ask-layout" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 240px)', minHeight: 400 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 10, flexWrap: 'wrap' }}>
-            <select value={datasetId} onChange={(e) => setDatasetId(e.target.value)}
-              style={{ padding: '9px 14px', fontSize: 13, fontWeight: 500, borderRadius: 10, minWidth: 220 }}>
-              {datasets.map((d) => <option key={d.id} value={d.id}>{d.original_filename}</option>)}
-            </select>
-            {remaining !== null && (
-              <span style={{ fontSize: 12, color: '#6b6b6b' }}>
-                <span className="font-mono-num" style={{ color: remaining < 5 ? '#dc2626' : '#0a0a0a', fontWeight: 700 }}>{remaining}</span> AI questions left
-              </span>
-            )}
-          </div>
-
-          <div style={{ flex: 1, overflowY: 'auto', borderRadius: 12, padding: '20px', background: '#ffffff', border: '1.5px solid #e8e8e8', display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 12 }}>
-            {messages.length === 0 && (
-              <div style={{ margin: 'auto', maxWidth: 420, textAlign: 'center' }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#0a0a0a', marginBottom: 4 }}>
-                  What would you like to know?
-                </div>
-                <div style={{ fontSize: 12, color: '#a8a8a8', marginBottom: 14 }}>
-                  Pick one to try:
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {EXAMPLES.map(q => (
-                    <button key={q} onClick={() => setQuestion(q)}
-                      style={{
-                        padding: '8px 12px', borderRadius: 9, fontSize: 13, textAlign: 'left',
-                        border: '1.5px solid #e8e8e8', background: '#fafafa', color: '#0a0a0a',
-                        cursor: 'pointer', transition: 'all 0.15s ease',
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.background = '#f0f0f0' }}
-                      onMouseLeave={e => { e.currentTarget.style.background = '#fafafa' }}
-                    >
-                      {q}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            {messages.map((m, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
-                <div style={{ maxWidth: m.role === 'user' ? '78%' : '88%', minWidth: 0 }}>
-                  {/* What the question was understood as — only shown when we
-                      recognised it, so a refusal is never dressed up as a hit. */}
-                  {m.role === 'assistant' && m.interpretation?.metric && m.interpretation.intent !== 'unknown' && (
-                    <div style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 6,
-                      fontSize: 11, color: '#6b6b6b', background: '#f3f3f3',
-                      padding: '3px 9px', borderRadius: 999,
-                    }}>
-                      <span style={{ fontWeight: 700, color: '#0a0a0a' }}>
-                        {INTENT_LABELS[m.interpretation.intent] ?? m.interpretation.intent}
-                      </span>
-                      {m.interpretation.metric && <span>· {m.interpretation.metric}</span>}
-                      {m.interpretation.horizon && (
-                        <span>· next {m.interpretation.horizon} {m.interpretation.horizon_unit}</span>
-                      )}
-                    </div>
-                  )}
-                  <div style={{
-                    padding: '10px 14px', borderRadius: 12, fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap',
-                    background: m.role === 'user' ? '#0a0a0a' : '#f3f3f3',
-                    color: m.role === 'user' ? '#fff' : '#0a0a0a',
-                    borderBottomRightRadius: m.role === 'user' ? 4 : 12,
-                    borderBottomLeftRadius: m.role === 'assistant' ? 4 : 12,
-                  }}>{m.content}</div>
-                  {m.forecast && <ForecastChart forecast={m.forecast} />}
-                  {m.disclaimer && <div style={{ fontSize: 11, color: '#a8a8a8', marginTop: 6, paddingLeft: 4 }}>{m.disclaimer}</div>}
-                </div>
-              </div>
-            ))}
-            {busy && (
-              <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                <div style={{ padding: '10px 14px', borderRadius: 12, borderBottomLeftRadius: 4, fontSize: 14, background: '#f3f3f3', color: '#6b6b6b' }}>Working it out…</div>
-              </div>
-            )}
-            <div ref={bottomRef} />
-          </div>
-
-          {error && <div style={{ fontSize: 13, color: '#dc2626', marginBottom: 8 }}>{error}</div>}
-
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input value={question} onChange={(e) => setQuestion(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && ask()}
-              placeholder="Ask a question about this dataset…"
-              style={{ flex: 1, padding: '11px 14px', fontSize: 14, borderRadius: 10 }} disabled={busy} />
-            <button onClick={ask} disabled={busy || !question.trim()}
-              style={{ padding: '11px 22px', borderRadius: 10, fontSize: 14, fontWeight: 700, color: '#fff', background: '#0a0a0a', border: 'none', opacity: busy || !question.trim() ? 0.4 : 1, transition: 'opacity 0.15s' }}>
-              Send
-            </button>
-          </div>
-        </div>
-      )}
     </Shell>
   )
 }

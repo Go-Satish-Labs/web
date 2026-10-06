@@ -59,7 +59,7 @@ function KpiCards({ config }: { config: DashboardConfig }) {
       {config.kpi_cards.map(k => {
         const isGrowth = k.growth_pct !== undefined && k.growth_pct !== null
         return (
-          <div key={k.metric} style={{ ...card, position: 'relative', overflow: 'hidden' }}>
+          <div key={k.metric} className="card-hover" style={{ ...card, position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: '#0a0a0a' }} />
             <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b6b6b', marginBottom: 10 }}>{fn(k.metric)}</div>
             {isGrowth ? (
@@ -116,7 +116,7 @@ function ChartReading({ chart }: { chart: ChartSpec }) {
 /* ── Charts ── */
 function Chart({ chart }: { chart: ChartSpec }) {
   if (chart.type === 'line' && chart.data) return (
-    <div style={card}>
+    <div className="card-hover" style={card}>
       <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b6b6b' }}>Trend</div>
       <div style={{ fontSize: 15, fontWeight: 700, color: '#0a0a0a', margin: '4px 0 4px' }}>{fn(chart.title)}</div>
       <div style={{ fontSize: 12, color: '#a8a8a8', marginBottom: 14 }}>How this value changed over time</div>
@@ -134,7 +134,7 @@ function Chart({ chart }: { chart: ChartSpec }) {
   )
 
   if (chart.type === 'bar' && chart.data) return (
-    <div style={card}>
+    <div className="card-hover" style={card}>
       <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b6b6b' }}>Comparison</div>
       <div style={{ fontSize: 15, fontWeight: 700, color: '#0a0a0a', margin: '4px 0 4px' }}>{fn(chart.title)}</div>
       <div style={{ fontSize: 12, color: '#a8a8a8', marginBottom: 14 }}>Top categories ranked by value</div>
@@ -156,7 +156,7 @@ function Chart({ chart }: { chart: ChartSpec }) {
   )
 
   if (chart.type === 'histogram' && chart.data) return (
-    <div style={card}>
+    <div className="card-hover" style={card}>
       <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b6b6b' }}>Distribution</div>
       <div style={{ fontSize: 15, fontWeight: 700, color: '#0a0a0a', margin: '4px 0 4px' }}>{fn(chart.title)}</div>
       <div style={{ fontSize: 12, color: '#a8a8a8', marginBottom: 14 }}>How values are spread across ranges</div>
@@ -174,7 +174,7 @@ function Chart({ chart }: { chart: ChartSpec }) {
   )
 
   if (chart.type === 'scatter' && chart.data) return (
-    <div style={card}>
+    <div className="card-hover" style={card}>
       <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b6b6b' }}>Relationship</div>
       <div style={{ fontSize: 15, fontWeight: 700, color: '#0a0a0a', margin: '4px 0 4px' }}>{fn(chart.title)}</div>
       <div style={{ fontSize: 12, color: '#a8a8a8', marginBottom: 14 }}>Each dot is one row — look for patterns</div>
@@ -192,7 +192,7 @@ function Chart({ chart }: { chart: ChartSpec }) {
   )
 
   if (chart.type === 'pie' && chart.data) return (
-    <div style={card}>
+    <div className="card-hover" style={card}>
       <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b6b6b' }}>Breakdown</div>
       <div style={{ fontSize: 15, fontWeight: 700, color: '#0a0a0a', margin: '4px 0 14px' }}>{fn(chart.title)}</div>
       <ResponsiveContainer width="100%" height={220}>
@@ -235,7 +235,7 @@ function Chart({ chart }: { chart: ChartSpec }) {
   }
 
   if (chart.type === 'top_bottom') return (
-    <div style={card}>
+    <div className="card-hover" style={card}>
       <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b6b6b' }}>Rankings</div>
       <div style={{ fontSize: 15, fontWeight: 700, color: '#0a0a0a', margin: '4px 0 4px' }}>{fn(chart.title)}</div>
       <div style={{ fontSize: 12, color: '#a8a8a8', marginBottom: 14 }}>Best and worst performers</div>
@@ -532,12 +532,13 @@ export default function DatasetDetailPage() {
 
   return (
     <Shell>
-      {loading && <div style={{ fontSize: 14, color: '#6b6b6b' }}>Loading dashboard…</div>}
-      {notReady && <div style={{ padding: '16px 20px', borderRadius: 12, background: '#fffbeb', border: '1.5px solid rgba(202,138,4,0.2)', fontSize: 14, color: '#92400e' }}>Dashboard is still generating — check back in a moment.</div>}
+      <div className="page-enter">
+      {loading && <div className="skeleton" style={{ height: 120, borderRadius: 16, marginBottom: 24 }} />}
+      {notReady && <div className="pop-in" style={{ padding: '16px 20px', borderRadius: 12, background: '#fffbeb', border: '1.5px solid rgba(202,138,4,0.2)', fontSize: 14, color: '#92400e' }}>Dashboard is still generating — check back in a moment.</div>}
       {config && (
         <>
           {/* Hero */}
-          <div style={{ borderRadius: 16, padding: '28px 32px', marginBottom: 24, background: '#0a0a0a', position: 'relative', overflow: 'hidden' }} className="hero-card">
+          <div className="rise" style={{ '--i': 0, borderRadius: 16, padding: '28px 32px', marginBottom: 24, background: '#0a0a0a', position: 'relative', overflow: 'hidden' } as React.CSSProperties} >
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, justifyContent: 'space-between', alignItems: 'flex-end' }}>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>Auto-generated dashboard</div>
@@ -569,8 +570,8 @@ export default function DatasetDetailPage() {
               {/* Labeled/unlabeled banner */}
               {config.data_structure && <StructureBanner ds={config.data_structure} />}
 
-              {/* KPIs */}
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#0a0a0a', marginBottom: 12 }}>Key numbers</div>
+          {/* KPIs */}
+              <div className="rise" style={{ '--i': 1, fontSize: 13, fontWeight: 700, color: '#0a0a0a', marginBottom: 12 } as React.CSSProperties}>Key numbers</div>
               <KpiCards config={config} />
 
               {/* Charts */}
@@ -596,15 +597,16 @@ export default function DatasetDetailPage() {
 
           {/* Preview modal */}
           {showPreview && preview && (
-            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-              <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 1000, maxHeight: '90vh', overflowY: 'auto', position: 'relative', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }} className="preview-modal">
-                <button onClick={() => setShowPreview(false)} style={{ position: 'absolute', top: 16, right: 16, border: 'none', background: '#f3f3f3', cursor: 'pointer', color: '#0a0a0a', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, fontSize: 16 }}>✕</button>
+            <div className="fade-in" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+              <div className="modal-enter" style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 1000, maxHeight: '90vh', overflowY: 'auto', position: 'relative', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+                <button onClick={() => setShowPreview(false)} className="btn-close" style={{ position: 'absolute', top: 16, right: 16, zIndex: 10 }}>✕</button>
                 <div style={{ padding: 24 }}><PreviewTable preview={preview} /></div>
               </div>
             </div>
           )}
         </>
       )}
+      </div>
     </Shell>
   )
 }

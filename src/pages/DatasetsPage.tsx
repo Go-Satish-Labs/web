@@ -143,19 +143,14 @@ export default function DatasetsPage() {
 
   return (
     <Shell>
+      <div className="page-enter">
       {/* header */}
       <div className="dataset-title-bar" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
-        <div>
+        <div className="rise" style={{ '--i': 0 } as React.CSSProperties}>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: '#0a0a0a', margin: 0, letterSpacing: '-0.02em' }}>Datasets</h1>
           <p style={{ fontSize: 14, color: '#6b6b6b', marginTop: 6 }}>Upload a CSV or Excel file — a dashboard is generated automatically.</p>
         </div>
-        <button onClick={pickFile} disabled={uploading} style={{
-          display: 'inline-flex', alignItems: 'center', gap: 7,
-          padding: '9px 18px', borderRadius: 10, fontSize: 13, fontWeight: 700,
-          color: '#fff', background: uploading ? '#a8a8a8' : '#0a0a0a',
-          border: 'none', cursor: uploading ? 'not-allowed' : 'pointer', flexShrink: 0,
-          transition: 'background 0.2s',
-        }}>
+        <button onClick={pickFile} disabled={uploading} className="btn-solid btn-base rise" style={{ '--i': 0, display: 'inline-flex', alignItems: 'center', gap: 7, flexShrink: 0 } as React.CSSProperties}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
@@ -172,28 +167,28 @@ export default function DatasetsPage() {
 
       {/* duplicate warning */}
       {dupToast && (
-        <div style={{
+        <div className="pop-in" style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
           padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 16,
           background: '#fffbeb', color: '#92400e', border: '1.5px solid rgba(202,138,4,0.25)',
         }}>
           <span>⚠️ {dupToast}</span>
-          <button onClick={() => setDupToast('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#92400e', fontSize: 18, lineHeight: 1, padding: 0 }}>×</button>
+          <button onClick={() => setDupToast('')} className="btn-close" style={{ color: '#92400e', borderColor: 'transparent', background: 'transparent' }}>×</button>
         </div>
       )}
 
       {/* upload error */}
       {error && (
-        <div style={{ padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 16, background: '#fef2f2', color: '#dc2626', border: '1.5px solid rgba(220,38,38,0.15)' }}>
+        <div className="shake" style={{ padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 16, background: '#fef2f2', color: '#dc2626', border: '1.5px solid rgba(220,38,38,0.15)' }}>
           {error}
         </div>
       )}
 
       {/* delete error */}
       {deleteError && (
-        <div style={{ padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 16, background: '#fef2f2', color: '#dc2626', border: '1.5px solid rgba(220,38,38,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <div className="pop-in" style={{ padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 16, background: '#fef2f2', color: '#dc2626', border: '1.5px solid rgba(220,38,38,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <span>Could not delete: {deleteError}</span>
-          <button onClick={() => setDeleteError('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: 18, lineHeight: 1, padding: 0 }}>×</button>
+          <button onClick={() => setDeleteError('')} className="btn-close" style={{ color: '#dc2626', borderColor: 'transparent', background: 'transparent' }}>×</button>
         </div>
       )}
 
@@ -209,7 +204,7 @@ export default function DatasetsPage() {
       {/* list */}
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {[1, 2, 3].map(i => <div key={i} style={{ height: 72, borderRadius: 12, background: '#f3f3f3', border: '1.5px solid #e8e8e8' }} />)}
+          {[1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: 72, borderRadius: 12 }} />)}
         </div>
       ) : datasets.length === 0 ? (
         <div style={{ borderRadius: 14, padding: '60px 40px', textAlign: 'center', background: '#ffffff', border: '2px dashed #e8e8e8' }}>
@@ -227,15 +222,12 @@ export default function DatasetsPage() {
             const s = STATUS[d.status] ?? STATUS.uploaded
             const ready = d.status === 'analyzed'
             return (
-              <div key={d.id} className="dataset-row"
+              <div key={d.id} className={`dataset-row row-hover${ready ? '' : ''}`}
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '14px 20px', fontSize: 14,
                   borderTop: i === 0 ? 'none' : '1.5px solid #e8e8e8',
-                  transition: 'background 0.12s',
                 }}
-                onMouseEnter={e => { if (ready) e.currentTarget.style.background = '#f9f9f9' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
               >
                 {/* left: icon + name */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0, flex: 1 }}>
@@ -264,15 +256,13 @@ export default function DatasetsPage() {
                   {ready ? (
                     <button
                       onClick={() => navigate(`/datasets/${d.id}`)}
+                      className="btn-base"
                       style={{
                         display: 'inline-flex', alignItems: 'center', gap: 5,
                         fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 8,
                         background: '#0a0a0a', color: '#fff', border: 'none', cursor: 'pointer',
-                        transition: 'background 0.15s',
                         whiteSpace: 'nowrap',
                       }}
-                      onMouseEnter={e => (e.currentTarget.style.background = '#1a1a1a')}
-                      onMouseLeave={e => (e.currentTarget.style.background = '#0a0a0a')}
                     >
                       View dashboard
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -316,6 +306,7 @@ export default function DatasetsPage() {
           })}
         </div>
       )}
+      </div>
     </Shell>
   )
 }

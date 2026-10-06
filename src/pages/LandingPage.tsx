@@ -203,6 +203,7 @@ export default function LandingPage() {
               transform: closing ? 'translateY(16px) scale(0.98)' : 'translateY(0) scale(1)',
               transition: 'opacity 0.3s ease, transform 0.3s cubic-bezier(0.22,1,0.36,1)',
             }}
+            className="modal-enter"
           >
             {/* tab switcher inside modal */}
             <div style={{ display: 'flex', gap: 0, marginBottom: 24, background: '#f3f3f3', borderRadius: 10, padding: 3 }}>
