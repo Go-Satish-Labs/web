@@ -4,54 +4,6 @@ import Logo from './Logo'
 import Footer from './Footer'
 import { useAuth } from '../features/auth/AuthContext'
 
-function ProfileCompletionBanner() {
-  const { user } = useAuth()
-  const location = useLocation()
-  const navigate = useNavigate()
-
-  // Don't show on settings page or if user already has security question
-  if (location.pathname.startsWith('/settings') || user?.hasSecurityQuestion) {
-    return null
-  }
-
-  return (
-    <div style={{
-      padding: '12px 20px',
-      background: 'var(--bg-subtle)',
-      borderBottom: '1.5px solid var(--border)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 16,
-      flexWrap: 'wrap',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 200 }}>
-        <div style={{
-          width: 28, height: 28, borderRadius: '50%',
-          background: 'var(--text)', color: '#fff',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 14, fontWeight: 700, flexShrink: 0,
-        }}>
-          !
-        </div>
-        <span style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>
-          Complete your profile: add a security question for password recovery
-        </span>
-      </div>
-      <button
-        onClick={() => navigate('/settings')}
-        style={{
-          padding: '8px 16px', borderRadius: 8, border: 'none',
-          background: 'var(--text)', color: '#fff', fontSize: 12, fontWeight: 600,
-          cursor: 'pointer', flexShrink: 0,
-        }}
-      >
-        Complete now
-      </button>
-    </div>
-  )
-}
-
 const navItems = [
   {
     to: '/datasets',
@@ -170,11 +122,15 @@ export default function Shell({ children }: { children: ReactNode }) {
               background: 'var(--text)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 11, fontWeight: 700, color: '#fff',
+              overflow: 'hidden', flexShrink: 0,
             }}>
-              {user?.email?.[0]?.toUpperCase() ?? 'U'}
+              {user?.profilePicUrl
+                ? <img src={user.profilePicUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : (user?.email?.[0]?.toUpperCase() ?? 'U')
+              }
             </div>
             <span className="account-email" style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-muted)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {user?.email}
+              {user?.displayName || user?.email}
             </span>
             {user?.plan === 'premium' && (
               <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10, background: 'var(--text)', color: '#fff' }}>PRO</span>
@@ -185,7 +141,6 @@ export default function Shell({ children }: { children: ReactNode }) {
 
       {/* ── Page content ── */}
       <main style={{ paddingLeft: 52 }}>
-        <ProfileCompletionBanner />
         <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 40px' }}>
           {children}
           <Footer />

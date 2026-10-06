@@ -18,7 +18,9 @@ interface User {
   email: string
   plan: string
   role: string
+  displayName?: string | null
   hasSecurityQuestion?: boolean
+  profilePicUrl?: string | null
 }
 
 interface AuthContextValue {
@@ -70,7 +72,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     try {
       const { data } = await api.get('/auth/me')
-      setUser(data)
+      setUser({
+        id: data.id,
+        email: data.email,
+        plan: data.plan,
+        role: data.role,
+        displayName: data.display_name ?? null,
+        hasSecurityQuestion: data.has_security_question,
+        profilePicUrl: data.profile_pic_url ?? null,
+      })
       setAuthError('')
       // If we have pending security info and user is now verified, save it
       if (pendingSecurity) {

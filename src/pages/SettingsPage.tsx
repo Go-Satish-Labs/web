@@ -1,323 +1,307 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import Shell from '../components/Shell'
 import { useAuth } from '../features/auth/AuthContext'
 import { api } from '../lib/api'
 import { friendlyError } from '../lib/errors'
 
+const card: React.CSSProperties = {
+  background: '#fff',
+  border: '1.5px solid var(--border)',
+  borderRadius: 16,
+  padding: '28px 28px',
+  marginBottom: 20,
+}
+
+const label: React.CSSProperties = {
+  fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+  letterSpacing: '0.08em', color: 'var(--text-muted)',
+  display: 'block', marginBottom: 7,
+}
+
+const input: React.CSSProperties = {
+  width: '100%', padding: '11px 14px', fontSize: 14,
+  background: 'var(--bg-subtle)', border: '1.5px solid var(--border)',
+  borderRadius: 10, color: 'var(--text)', outline: 'none',
+  boxSizing: 'border-box',
+}
+
+const btn: React.CSSProperties = {
+  padding: '11px 24px', borderRadius: 10, border: 'none',
+  background: 'var(--text)', color: '#fff',
+  fontSize: 13, fontWeight: 700, cursor: 'pointer',
+}
+
+/* ── Avatar ── */
+function Avatar({ url, name, size = 80 }: { url?: string | null; name: string; size?: number }) {
+  const initials = name.split('@')[0].slice(0, 2).toUpperCase()
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: '50%',
+      background: '#0a0a0a', color: '#fff',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: size * 0.3, fontWeight: 800, overflow: 'hidden', flexShrink: 0,
+      border: '3px solid var(--border)',
+    }}>
+      {url
+        ? <img src={url} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        : initials}
+    </div>
+  )
+}
+
 export default function SettingsPage() {
   const { user, refreshUser } = useAuth()
-  const [securityQuestion, setSecurityQuestion] = useState('')
-  const [securityAnswer, setSecurityAnswer] = useState('')
-  const [hasSecurityQuestion, setHasSecurityQuestion] = useState(false)
+
+  /* profile */
+  const [displayName, setDisplayName] = useState(user?.displayName ?? '')
+  const [savingName, setSavingName] = useState(false)
+  const [nameMsg, setNameMsg] = useState('')
+
+  /* avatar */
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [uploadingPic, setUploadingPic] = useState(false)
+  const [picErr, setPicErr] = useState('')
+
+  /* security */
+  const [secQ, setSecQ] = useState('')
+  const [secA, setSecA] = useState('')
+  const [hasSecQ, setHasSecQ] = useState(false)
+  const [editingSec, setEditingSec] = useState(false)
+  const [savingSec, setSavingSec] = useState(false)
+  const [secMsg, setSecMsg] = useState('')
+  const [secErr, setSecErr] = useState('')
+  const [showAnswer, setShowAnswer] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState('')
-  const [error, setError] = useState('')
-  const [revealAnswer, setRevealAnswer] = useState(false)
-  const [editing, setEditing] = useState(false)
 
-  async function load() {
-    try {
-      const { data } = await api.get('/auth/me')
-      if (data.security_question) {
-        setSecurityQuestion(data.security_question)
-        setHasSecurityQuestion(true)
-      }
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false)
-    }
-  }
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    api.get('/auth/me').then(({ data }) => {
+      if (data.security_question) { setSecQ(data.security_question); setHasSecQ(true) }
+      if (data.display_name) setDisplayName(data.display_name)
+    }).finally(() => setLoading(false))
+  }, [])
 
-  async function onSubmit(e: FormEvent) {
+  async function saveName(e: FormEvent) {
     e.preventDefault()
-    setError(''); setMessage(''); setSaving(true)
+    setSavingName(true); setNameMsg('')
     try {
-      await api.patch('/auth/me', { security_question: securityQuestion, security_answer: securityAnswer })
-      setMessage('Security question saved. You can now use it to recover your password.')
-      setHasSecurityQuestion(true)
-      setEditing(false)
-      setRevealAnswer(false)
+      await api.patch('/auth/me/profile', { display_name: displayName })
+      await refreshUser()
+      setNameMsg('Saved.')
+      setTimeout(() => setNameMsg(''), 2500)
+    } finally { setSavingName(false) }
+  }
+
+  async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPicErr('')
+    if (!file.type.startsWith('image/')) { setPicErr('Please pick an image file.'); return }
+    if (file.size > 2 * 1024 * 1024) { setPicErr('Image must be under 2 MB.'); return }
+    setUploadingPic(true)
+    try {
+      const bytes = await file.arrayBuffer()
+      await api.post('/auth/me/profile-pic', bytes, {
+        headers: { 'Content-Type': file.type },
+      })
       await refreshUser()
     } catch (err) {
-      setError(friendlyError(err))
+      setPicErr(friendlyError(err))
     } finally {
-      setSaving(false)
+      setUploadingPic(false)
+      if (fileRef.current) fileRef.current.value = ''
     }
   }
 
-  async function removeSecurityQuestion() {
-    if (!window.confirm('Remove your security question? You will not be able to use password recovery without it.')) return
-    setError(''); setMessage(''); setSaving(true)
+  async function removePic() {
+    setUploadingPic(true)
+    try { await api.delete('/auth/me/profile-pic'); await refreshUser() }
+    finally { setUploadingPic(false) }
+  }
+
+  async function saveSecurity(e: FormEvent) {
+    e.preventDefault()
+    setSecErr(''); setSecMsg(''); setSavingSec(true)
+    try {
+      await api.patch('/auth/me', { security_question: secQ, security_answer: secA })
+      setHasSecQ(true); setEditingSec(false); setSecA('')
+      setSecMsg('Security question saved.')
+      await refreshUser()
+      setTimeout(() => setSecMsg(''), 3000)
+    } catch (err) { setSecErr(friendlyError(err)) }
+    finally { setSavingSec(false) }
+  }
+
+  async function removeSecurity() {
+    if (!window.confirm('Remove your security question? Password recovery will be unavailable.')) return
+    setSavingSec(true)
     try {
       await api.patch('/auth/me', { security_question: '', security_answer: '' })
-      setSecurityQuestion('')
-      setSecurityAnswer('')
-      setHasSecurityQuestion(false)
-      setEditing(false)
-      setMessage('Security question removed.')
+      setSecQ(''); setSecA(''); setHasSecQ(false); setEditingSec(false)
       await refreshUser()
-    } catch (err) {
-      setError(friendlyError(err))
-    } finally {
-      setSaving(false)
-    }
+    } finally { setSavingSec(false) }
   }
 
-  if (loading) return <Shell><div>Loading…</div></Shell>
+  if (loading) return <Shell><div style={{ color: 'var(--text-muted)', fontSize: 14 }}>Loading…</div></Shell>
 
-  const profileComplete = hasSecurityQuestion
-  const completionPercent = profileComplete ? 100 : 0
+  const emailUsername = user?.email ?? ''
+  const joinedDate = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 
   return (
     <Shell>
-      <div style={{ marginBottom: 32 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', margin: 0, letterSpacing: '-0.02em' }}>Profile</h1>
-        <p style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 6 }}>Manage your profile and security settings.</p>
-      </div>
+      <div style={{ maxWidth: 620 }}>
 
-      {/* Profile completion banner */}
-      {!profileComplete && (
-        <div style={{
-          padding: '16px 20px', borderRadius: 12, marginBottom: 24,
-          background: 'var(--bg-subtle)', border: '1.5px solid var(--border)',
-          display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
-        }}>
-          <div style={{
-            width: 40, height: 40, borderRadius: '50%',
-            background: 'var(--text)', color: '#fff',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 18, fontWeight: 700, flexShrink: 0,
-          }}>
-            !
-          </div>
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>
-              Profile incomplete
+        {/* ── Profile hero card ── */}
+        <div style={{ ...card, padding: '32px 28px' }}>
+          {/* Avatar row */}
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 20, marginBottom: 24 }}>
+            <div style={{ position: 'relative' }}>
+              <Avatar url={user?.profilePicUrl} name={emailUsername} size={88} />
+              <button
+                onClick={() => fileRef.current?.click()}
+                disabled={uploadingPic}
+                title="Change photo"
+                style={{
+                  position: 'absolute', bottom: 0, right: 0,
+                  width: 28, height: 28, borderRadius: '50%',
+                  background: '#0a0a0a', border: '2px solid #fff',
+                  color: '#fff', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 13,
+                }}
+              >
+                {uploadingPic ? '…' : '✎'}
+              </button>
+              <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={onPickFile} />
             </div>
-            <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-              Add a security question to enable password recovery. This is required to use the forgot password feature.
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            style={{
-              padding: '10px 20px', borderRadius: 8, border: 'none',
-              background: 'var(--text)', color: '#fff', fontSize: 13, fontWeight: 600,
-              cursor: 'pointer', flexShrink: 0,
-            }}
-          >
-            Complete now
-          </button>
-        </div>
-      )}
-
-      {/* Profile completion progress */}
-      <div style={{
-        background: 'var(--bg-white)', border: '1.5px solid var(--border)', borderRadius: 14,
-        padding: '20px 24px', marginBottom: 24,
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>Profile completion</span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{completionPercent}%</span>
-        </div>
-        <div style={{ height: 8, borderRadius: 4, background: 'var(--bg-subtle)', overflow: 'hidden' }}>
-          <div style={{
-            height: '100%', width: `${completionPercent}%`,
-            background: 'var(--text)', borderRadius: 4,
-            transition: 'width 0.3s ease',
-          }} />
-        </div>
-        <div style={{ display: 'flex', gap: 16, marginTop: 16, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-muted)' }}>
-            <span style={{
-              width: 16, height: 16, borderRadius: '50%',
-              background: 'var(--text)', color: '#fff',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 10, fontWeight: 700,
-            }}>✓</span>
-            Email verified
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: hasSecurityQuestion ? 'var(--text-muted)' : 'var(--text)' }}>
-            <span style={{
-              width: 16, height: 16, borderRadius: '50%',
-              background: hasSecurityQuestion ? 'var(--text)' : 'var(--bg-subtle)',
-              border: hasSecurityQuestion ? 'none' : '1.5px solid var(--border-strong)',
-              color: hasSecurityQuestion ? '#fff' : 'var(--text-muted)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 10, fontWeight: 700,
-            }}>
-              {hasSecurityQuestion ? '✓' : '!'}
-            </span>
-            Security question
-          </div>
-        </div>
-      </div>
-
-      {/* Security question section */}
-      <div style={{ background: 'var(--bg-white)', border: '1.5px solid var(--border)', borderRadius: 14, padding: '24px', maxWidth: 560 }}>
-        {message && (
-          <div style={{ padding: '12px 16px', borderRadius: 8, background: 'var(--bg-subtle)', color: 'var(--text)', marginBottom: 16, fontSize: 13, border: '1px solid var(--border)' }}>
-            {message}
-          </div>
-        )}
-        {error && (
-          <div style={{ padding: '12px 16px', borderRadius: 8, background: 'var(--bad-light)', color: 'var(--bad)', marginBottom: 16, fontSize: 13, border: '1px solid var(--bad)' }}>
-            {error}
-          </div>
-        )}
-
-        {hasSecurityQuestion && !editing ? (
-          <>
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.5px', display: 'block', marginBottom: 8 }}>SECURITY QUESTION</label>
-              <div style={{
-                padding: '12px 16px', borderRadius: 10,
-                background: 'var(--bg-subtle)', border: '1px solid var(--border)',
-                fontSize: 14, color: 'var(--text)', fontWeight: 500,
-              }}>
-                {securityQuestion}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user?.displayName || emailUsername.split('@')[0]}
               </div>
-            </div>
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.5px', display: 'block', marginBottom: 8 }}>YOUR ANSWER</label>
-              <div style={{
-                padding: '12px 16px', borderRadius: 10,
-                background: 'var(--bg-subtle)', border: '1px solid var(--border)',
-                fontSize: 14, color: 'var(--text)', fontWeight: 500,
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-              }}>
-                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {revealAnswer ? securityAnswer : '••••••••••'}
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {emailUsername}
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: '#f3f3f3', color: '#6b6b6b', textTransform: 'capitalize' }}>
+                  {user?.plan ?? 'free'}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setRevealAnswer(!revealAnswer)}
-                  style={{
-                    background: 'none', border: 'none', color: 'var(--text)',
-                    fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: '4px 8px',
-                    textDecoration: 'underline', flexShrink: 0,
-                  }}
-                >
-                  {revealAnswer ? 'Hide' : 'Show'}
-                </button>
+                <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: '#f3f3f3', color: '#6b6b6b' }}>
+                  Member since {joinedDate}
+                </span>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                onClick={() => setEditing(true)}
-                style={{
-                  padding: '10px 20px', borderRadius: 8, border: 'none',
-                  background: 'var(--text)', color: '#fff', fontSize: 13, fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                Edit
-              </button>
-              <button
-                type="button"
-                onClick={removeSecurityQuestion}
-                disabled={saving}
-                style={{
-                  padding: '10px 20px', borderRadius: 8, border: '1.5px solid var(--bad)',
-                  background: 'var(--bg-white)', color: 'var(--bad)', fontSize: 13, fontWeight: 600,
-                  cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1,
-                }}
-              >
-                {saving ? 'Removing…' : 'Remove'}
-              </button>
-            </div>
-          </>
-        ) : (
-          <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 8 }}>
-              {hasSecurityQuestion ? 'Update your security question and answer.' : 'Add a security question to enable password recovery if you forget your password. This works alongside your email verification.'}
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.5px' }}>SECURITY QUESTION</label>
-              <input
-                type="text"
-                required
-                value={securityQuestion}
-                onChange={e => setSecurityQuestion(e.target.value)}
-                placeholder="e.g., What was your first pet's name?"
-                style={{
-                  width: '100%', padding: '11px 13px', fontSize: 14,
-                  background: 'var(--bg-subtle)', border: '1.5px solid var(--border)',
-                  borderRadius: 10, color: 'var(--text)', outline: 'none',
-                  boxSizing: 'border-box',
-                }}
-              />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.5px' }}>YOUR ANSWER</label>
-              <input
-                type="text"
-                required
-                value={securityAnswer}
-                onChange={e => setSecurityAnswer(e.target.value)}
-                placeholder="Your answer (case-insensitive)"
-                style={{
-                  width: '100%', padding: '11px 13px', fontSize: 14,
-                  background: 'var(--bg-subtle)', border: '1.5px solid var(--border)',
-                  borderRadius: 10, color: 'var(--text)', outline: 'none',
-                  boxSizing: 'border-box',
-                }}
-              />
-            </div>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <button
-                type="submit"
-                disabled={saving}
-                style={{
-                  flex: 1, padding: '12px', borderRadius: 10, border: 'none',
-                  fontSize: 14, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer',
-                  background: saving ? 'var(--border-strong)' : 'var(--text)', color: '#ffffff',
-                  transition: 'all 0.18s ease', minWidth: 140,
-                }}
-              >
-                {saving ? 'Saving…' : 'Save security question'}
-              </button>
-              {editing && (
-                <button
-                  type="button"
-                  onClick={() => { setEditing(false); setSecurityQuestion(''); setSecurityAnswer(''); }}
-                  style={{
-                    padding: '12px 20px', borderRadius: 10, border: '1.5px solid var(--border)',
-                    background: 'var(--bg-white)', color: 'var(--text)', fontSize: 14, fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-          </form>
-        )}
-      </div>
+          </div>
 
-      {/* Account info */}
-      <div style={{ background: 'var(--bg-white)', border: '1.5px solid var(--border)', borderRadius: 14, padding: '24px', maxWidth: 560, marginTop: 24 }}>
-        <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: '0 0 16px' }}>Account Information</h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
-            <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Email</span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{user?.email}</span>
+          {picErr && (
+            <div style={{ fontSize: 12, color: '#dc2626', marginBottom: 12, padding: '8px 12px', background: '#fef2f2', borderRadius: 8 }}>{picErr}</div>
+          )}
+          {user?.profilePicUrl && (
+            <button onClick={removePic} disabled={uploadingPic}
+              style={{ fontSize: 12, color: '#6b6b6b', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', marginBottom: 20, padding: 0 }}>
+              Remove photo
+            </button>
+          )}
+          <div style={{ fontSize: 11, color: '#a8a8a8', marginBottom: 20 }}>
+            JPG, PNG or WebP · max 2 MB
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
-            <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Plan</span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', textTransform: 'capitalize' }}>{user?.plan}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0' }}>
-            <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Role</span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', textTransform: 'capitalize' }}>{user?.role}</span>
-          </div>
+
+          {/* Display name */}
+          <form onSubmit={saveName}>
+            <label style={label}>Display name</label>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <input
+                style={{ ...input, flex: 1 }}
+                value={displayName}
+                onChange={e => setDisplayName(e.target.value)}
+                placeholder={emailUsername.split('@')[0]}
+                maxLength={80}
+              />
+              <button type="submit" disabled={savingName} style={{ ...btn, padding: '11px 20px', flexShrink: 0 }}>
+                {savingName ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+            {nameMsg && <div style={{ fontSize: 12, color: '#16a34a', marginTop: 8 }}>{nameMsg}</div>}
+          </form>
         </div>
+
+        {/* ── Account info ── */}
+        <div style={card}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Account</div>
+          {[
+            { label: 'Email', value: emailUsername },
+            { label: 'Username', value: emailUsername },
+            { label: 'Plan', value: (user?.plan ?? 'free').charAt(0).toUpperCase() + (user?.plan ?? 'free').slice(1) },
+            { label: 'Role', value: (user?.role ?? 'member').charAt(0).toUpperCase() + (user?.role ?? 'member').slice(1) },
+          ].map(row => (
+            <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0', borderBottom: '1px solid var(--border)' }}>
+              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{row.label}</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{row.value}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Security question ── */}
+        <div style={card}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>Security question</div>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.5 }}>
+            Used to verify your identity during password recovery.
+          </div>
+
+          {secMsg && <div style={{ fontSize: 13, color: '#16a34a', marginBottom: 14, padding: '10px 14px', background: '#f0fdf4', borderRadius: 8, border: '1px solid rgba(22,163,74,0.2)' }}>{secMsg}</div>}
+          {secErr && <div style={{ fontSize: 13, color: '#dc2626', marginBottom: 14, padding: '10px 14px', background: '#fef2f2', borderRadius: 8 }}>{secErr}</div>}
+
+          {hasSecQ && !editingSec ? (
+            <>
+              <div style={{ marginBottom: 14 }}>
+                <span style={label}>Question</span>
+                <div style={{ padding: '11px 14px', borderRadius: 10, background: 'var(--bg-subtle)', border: '1.5px solid var(--border)', fontSize: 14, color: 'var(--text)' }}>
+                  {secQ}
+                </div>
+              </div>
+              <div style={{ marginBottom: 20 }}>
+                <span style={label}>Answer</span>
+                <div style={{ padding: '11px 14px', borderRadius: 10, background: 'var(--bg-subtle)', border: '1.5px solid var(--border)', fontSize: 14, color: 'var(--text)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>{showAnswer ? secA || '(hidden)' : '••••••••'}</span>
+                  <button onClick={() => setShowAnswer(v => !v)} style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer', textDecoration: 'underline' }}>
+                    {showAnswer ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => setEditingSec(true)} style={btn}>Edit</button>
+                <button onClick={removeSecurity} disabled={savingSec}
+                  style={{ ...btn, background: '#fff', color: '#dc2626', border: '1.5px solid #dc2626' }}>
+                  Remove
+                </button>
+              </div>
+            </>
+          ) : (
+            <form onSubmit={saveSecurity} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={label}>Question <span style={{ color: '#dc2626' }}>*</span></label>
+                <input style={input} required value={secQ} onChange={e => setSecQ(e.target.value)}
+                  placeholder="e.g. What was your first pet's name?" />
+              </div>
+              <div>
+                <label style={label}>Answer <span style={{ color: '#dc2626' }}>*</span></label>
+                <input style={input} required value={secA} onChange={e => setSecA(e.target.value)}
+                  placeholder="Your answer (case-insensitive)" />
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button type="submit" disabled={savingSec} style={{ ...btn, flex: 1 }}>
+                  {savingSec ? 'Saving…' : 'Save'}
+                </button>
+                {editingSec && (
+                  <button type="button" onClick={() => setEditingSec(false)}
+                    style={{ ...btn, background: '#fff', color: 'var(--text)', border: '1.5px solid var(--border)' }}>
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </form>
+          )}
+        </div>
+
       </div>
     </Shell>
   )
