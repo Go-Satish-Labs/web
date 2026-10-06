@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { NavLink, useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import Logo from './Logo'
 import Footer from './Footer'
 import { useAuth } from '../features/auth/AuthContext'
