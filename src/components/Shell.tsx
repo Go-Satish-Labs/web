@@ -1,9 +1,75 @@
-import { type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import Logo from './Logo'
 import Footer from './Footer'
 import { useAuth } from '../features/auth/AuthContext'
 import { ProfileRing } from '../pages/SettingsPage'
+
+/* ── Security gate popup ── */
+function SecurityGatePopup({ onClose, onGoSetup }: { onClose: () => void; onGoSetup: () => void }) {
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 3000,
+        background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(6px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: '#fff', borderRadius: 20, padding: '36px 32px',
+          width: '100%', maxWidth: 420,
+          boxShadow: '0 24px 80px rgba(0,0,0,0.18)',
+          textAlign: 'center',
+        }}
+      >
+        {/* Icon */}
+        <div style={{
+          width: 56, height: 56, borderRadius: 16, background: '#f3f3f3',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 20px',
+        }}>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+
+        <div style={{ fontSize: 19, fontWeight: 800, color: '#0a0a0a', marginBottom: 10 }}>
+          Set up account security first
+        </div>
+        <div style={{ fontSize: 14, color: '#6b6b6b', lineHeight: 1.6, marginBottom: 28 }}>
+          Before you continue, please set a security question. This protects your account and enables password recovery if you ever get locked out.
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <button
+            onClick={onGoSetup}
+            style={{
+              width: '100%', padding: '13px', borderRadius: 10, border: 'none',
+              background: '#0a0a0a', color: '#fff', fontSize: 14, fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            Set up security question →
+          </button>
+          <button
+            onClick={onClose}
+            style={{
+              width: '100%', padding: '13px', borderRadius: 10,
+              border: '1.5px solid #e8e8e8', background: '#fff',
+              color: '#6b6b6b', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            Maybe later
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 const navItems = [
   {
@@ -62,29 +128,52 @@ export default function Shell({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const [showGate, setShowGate] = useState(false)
+
+  const secDone = !!user?.hasSecurityQuestion
+
+  function handleNavClick(to: string) {
+    // Settings is always allowed — that's where they fix it
+    if (to === '/settings') { navigate(to); return }
+    // Already on that tab — allow
+    if (location.pathname.startsWith(to)) { navigate(to); return }
+    // Security not set — show gate popup
+    if (!secDone) { setShowGate(true); return }
+    navigate(to)
+  }
+
+  const picDone = !!user?.profilePicUrl
+  const pct = (picDone ? 50 : 0) + (secDone ? 50 : 0)
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+
+      {showGate && (
+        <SecurityGatePopup
+          onClose={() => setShowGate(false)}
+          onGoSetup={() => { setShowGate(false); navigate('/settings') }}
+        />
+      )}
 
       {/* ── Vertical tab rail ── */}
       <nav className="vtab-rail">
         {navItems.map((item) => {
           const isActive = location.pathname.startsWith(item.to)
           return (
-            <NavLink
+            <button
               key={item.to}
-              to={item.to}
+              onClick={() => handleNavClick(item.to)}
               className={`vtab${isActive ? ' active' : ''}`}
             >
               <span className="vtab-icon">{item.icon}</span>
               <span className="vtab-label">{item.label}</span>
-            </NavLink>
+            </button>
           )
         })}
 
         {/* Sign out */}
         <button
-          onClick={() => { logout(); navigate('/login') }}
+          onClick={() => { logout(); navigate('/') }}
           className="vtab"
           style={{ marginTop: 16 }}
         >
@@ -113,31 +202,29 @@ export default function Shell({ children }: { children: ReactNode }) {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div className="account-chip" style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: '4px 12px 4px 4px', borderRadius: 20,
-            background: 'var(--bg-subtle)', border: '1.5px solid var(--border)',
-          }}>
-            {(() => {
-              const picDone = !!user?.profilePicUrl
-              const secDone = !!user?.hasSecurityQuestion
-              const pct = (picDone ? 50 : 0) + (secDone ? 50 : 0)
-              return (
-                <ProfileRing pct={pct} size={30} stroke={2}>
-                  <div style={{
-                    width: 22, height: 22, borderRadius: '50%',
-                    background: 'var(--text)', overflow: 'hidden',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 9, fontWeight: 800, color: '#fff',
-                  }}>
-                    {user?.profilePicUrl
-                      ? <img src={user.profilePicUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      : (user?.email?.[0]?.toUpperCase() ?? 'U')
-                    }
-                  </div>
-                </ProfileRing>
-              )
-            })()}
+          <div
+            className="account-chip"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '4px 12px 4px 4px', borderRadius: 20,
+              background: 'var(--bg-subtle)', border: '1.5px solid var(--border)',
+              cursor: 'pointer',
+            }}
+            onClick={() => handleNavClick('/settings')}
+          >
+            <ProfileRing pct={pct} size={30} stroke={2}>
+              <div style={{
+                width: 22, height: 22, borderRadius: '50%',
+                background: 'var(--text)', overflow: 'hidden',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 9, fontWeight: 800, color: '#fff',
+              }}>
+                {user?.profilePicUrl
+                  ? <img src={user.profilePicUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : (user?.email?.[0]?.toUpperCase() ?? 'U')
+                }
+              </div>
+            </ProfileRing>
             <span className="account-email" style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-muted)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {user?.displayName || user?.email}
             </span>
@@ -161,14 +248,14 @@ export default function Shell({ children }: { children: ReactNode }) {
         {navItems.map((item) => {
           const isActive = location.pathname.startsWith(item.to)
           return (
-            <NavLink
+            <button
               key={item.to}
-              to={item.to}
+              onClick={() => handleNavClick(item.to)}
               className={`bn-item${isActive ? ' active' : ''}`}
             >
               <span className="vtab-icon">{item.icon}</span>
               <span className="vtab-label">{item.label}</span>
-            </NavLink>
+            </button>
           )
         })}
 
