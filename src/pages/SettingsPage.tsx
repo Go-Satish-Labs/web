@@ -140,7 +140,6 @@ export default function SettingsPage() {
   const [secQ, setSecQ] = useState('')
   const [hasSecQ, setHasSecQ] = useState(!!user?.hasSecurityQuestion)
   const [showSecModal, setShowSecModal] = useState(false)
-  const [confirming, setConfirming] = useState(false)
   const [loading, setLoading] = useState(true)
 
   // track pct for animated bar
@@ -207,13 +206,7 @@ export default function SettingsPage() {
     finally { setUploadingPic(false) }
   }
 
-  async function removeSecurity() {
-    try {
-      await api.patch('/auth/me', { security_question: '', security_answer: '' })
-      setSecQ(''); setHasSecQ(false); setConfirming(false)
-      await refreshUser()
-    } catch { /* ignore */ }
-  }
+
 
   if (loading) return <Shell><div style={{ color: 'var(--g1)', fontSize: 14 }}>Loading…</div></Shell>
 
@@ -352,17 +345,8 @@ export default function SettingsPage() {
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               {!hasSecQ && <button className="sp-btn sm" onClick={() => setShowSecModal(true)}>Set question</button>}
-              {hasSecQ && !confirming && (
-                <>
-                  <button className="sp-btn sm ghost" onClick={() => setShowSecModal(true)}>Edit</button>
-                  <button className="sp-btn sm ghost" onClick={() => setConfirming(true)}>Remove</button>
-                </>
-              )}
-              {confirming && (
-                <>
-                  <button className="sp-btn sm" onClick={removeSecurity}>Yes, remove</button>
-                  <button className="sp-btn sm ghost" onClick={() => setConfirming(false)}>Cancel</button>
-                </>
+              {hasSecQ && (
+                <button className="sp-btn sm ghost" onClick={() => setShowSecModal(true)}>Edit</button>
               )}
             </div>
           </div>
