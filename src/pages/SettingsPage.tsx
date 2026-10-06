@@ -138,7 +138,7 @@ export default function SettingsPage() {
   const [picErr, setPicErr] = useState('')
 
   const [secQ, setSecQ] = useState('')
-  const [hasSecQ, setHasSecQ] = useState(false)
+  const [hasSecQ, setHasSecQ] = useState(!!user?.hasSecurityQuestion)
   const [showSecModal, setShowSecModal] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [loading, setLoading] = useState(true)
