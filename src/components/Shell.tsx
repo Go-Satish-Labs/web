@@ -141,7 +141,7 @@ export default function Shell({ children }: { children: ReactNode }) {
       {showGate && (
         <SecurityGatePopup
           onClose={() => setShowGate(false)}
-          onGoSetup={() => { setShowGate(false); navigate('/settings') }}
+          onGoSetup={() => { setShowGate(false); navigate('/settings', { state: { openSec: true } }) }}
         />
       )}
 
