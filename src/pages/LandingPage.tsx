@@ -245,7 +245,10 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
       <OAuthButtons />
       <Divider />
       {showForgotPassword ? (
-        <ForgotPasswordForm onBack={() => setShowForgotPassword(false)} />
+        <ForgotPasswordForm
+          onBack={() => setShowForgotPassword(false)}
+          onSwitchToLogin={() => setShowForgotPassword(false)}
+        />
       ) : (
         <>
           <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -274,9 +277,9 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
 }
 
 /* ── Forgot Password Form ── */
-function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
+function ForgotPasswordForm({ onBack, onSwitchToLogin }: { onBack: () => void; onSwitchToLogin: () => void }) {
   const { authError } = useAuth()
-  const [step, setStep] = useState<'email' | 'answer'>('email')
+  const [step, setStep] = useState<'email' | 'answer' | 'no-security'>('email')
   const [email, setEmail] = useState('')
   const [securityQuestion, setSecurityQuestion] = useState('')
   const [securityAnswer, setSecurityAnswer] = useState('')
@@ -293,8 +296,10 @@ function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
         body: JSON.stringify({ email })
       })
       const data = await res.json()
-      if (!res.ok || !data.has_security_question) {
-        throw new Error(data.has_security_question ? (data.security_question ? '' : 'No security question found.') : 'No security question set up for this account. Use the "Forgot password?" option on the login page after signing in with Google/GitHub, or contact support.')
+      if (!res.ok) throw new Error(data.detail || 'Something went wrong.')
+      if (!data.has_security_question) {
+        setStep('no-security')
+        return
       }
       setSecurityQuestion(data.security_question)
       setStep('answer')
@@ -317,7 +322,6 @@ function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
         const err = await res.json()
         throw new Error(err.detail || 'Incorrect security answer.')
       }
-      // Trigger Firebase password reset email
       const { firebaseAuth } = await import('../lib/firebase')
       const { sendPasswordResetEmail } = await import('firebase/auth')
       await sendPasswordResetEmail(firebaseAuth, email)
@@ -329,71 +333,95 @@ function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
     }
   }
 
+  // ── Success state ──
   if (success) {
     return (
-      <div style={{ textAlign: 'center', padding: '20px 0' }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>✓</div>
-        <div style={{ fontSize: 18, fontWeight: 700, color: '#0a0a0a', marginBottom: 8 }}>
-          Reset email sent
+      <div className="pop-in" style={{ textAlign: 'center', padding: '8px 0 4px' }}>
+        <div style={{ width: 56, height: 56, borderRadius: 16, background: '#f0fdf4', border: '1.5px solid rgba(22,163,74,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
-        <p style={{ fontSize: 14, color: '#6b6b6b', lineHeight: 1.6, marginBottom: 24 }}>
-          Check your inbox for the password reset link. The link expires in a few minutes.
-        </p>
-        <button
-          type="button"
-          onClick={onBack}
-          style={{
-            width: '100%', padding: '12px', borderRadius: 10, border: 'none',
-            fontSize: 14, fontWeight: 700, cursor: 'pointer',
-            background: '#0a0a0a', color: '#ffffff',
-            transition: 'all 0.18s ease',
-          }}
-        >
-          Back to sign in
-        </button>
+        <div style={{ fontSize: 18, fontWeight: 700, color: '#0a0a0a', marginBottom: 8 }}>Reset email sent</div>
+        <p style={{ fontSize: 13, color: '#6b6b6b', lineHeight: 1.6, marginBottom: 24 }}>Check your inbox for the password reset link.</p>
+        <Btn busy={false} label="Back to sign in" busyLabel="" onClick={onBack} />
       </div>
     )
   }
 
+  // ── No security question state ──
+  if (step === 'no-security') {
+    return (
+      <div className="pop-in" style={{ textAlign: 'center', padding: '8px 0 4px' }}>
+        <div style={{ width: 56, height: 56, borderRadius: 16, background: '#fffbeb', border: '1.5px solid rgba(202,138,4,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ca8a04" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+        <div style={{ fontSize: 17, fontWeight: 700, color: '#0a0a0a', marginBottom: 8 }}>No security question set</div>
+        <p style={{ fontSize: 13, color: '#6b6b6b', lineHeight: 1.6, marginBottom: 8 }}>
+          The account <strong style={{ color: '#0a0a0a' }}>{email}</strong> hasn't set up a security question yet.
+        </p>
+        <p style={{ fontSize: 13, color: '#6b6b6b', lineHeight: 1.6, marginBottom: 24 }}>
+          Sign in first, then go to <strong style={{ color: '#0a0a0a' }}>Settings → Password recovery</strong> to add one.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <Btn busy={false} label="Sign in to set it up →" busyLabel="" onClick={onSwitchToLogin} />
+          <button type="button" onClick={onBack}
+            style={{ width: '100%', padding: '11px', borderRadius: 10, border: '1.5px solid #e8e8e8', background: '#fff', color: '#6b6b6b', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            Back
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Normal flow ──
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
-        <button
-          type="button"
-          onClick={onBack}
-          style={{ background: 'none', border: 'none', color: '#6b6b6b', fontSize: 13, cursor: 'pointer', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 4 }}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+        <button type="button" onClick={step === 'answer' ? () => setStep('email') : onBack}
+          style={{ width: 32, height: 32, borderRadius: '50%', border: '1.5px solid #e8e8e8', background: '#f9f9f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'border-color 0.15s, background 0.15s' }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = '#0a0a0a'; e.currentTarget.style.background = '#fff' }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = '#e8e8e8'; e.currentTarget.style.background = '#f9f9f9' }}
         >
-          ← Back
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
-        <div style={{ fontSize: 16, fontWeight: 700, color: '#0a0a0a' }}>
-          {step === 'email' ? 'Forgot password' : 'Verify identity'}
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#0a0a0a', lineHeight: 1.2 }}>
+            {step === 'email' ? 'Forgot password' : 'Verify identity'}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 5 }}>
+            {(['email', 'answer'] as const).map((s, i) => (
+              <div key={s} style={{ height: 3, borderRadius: 3, width: step === s ? 20 : 12, background: step === s ? '#0a0a0a' : (i < ['email','answer'].indexOf(step) ? '#0a0a0a' : '#e8e8e8'), transition: 'width 0.3s cubic-bezier(.22,1,.36,1), background 0.3s' }} />
+            ))}
+            <span style={{ fontSize: 10, color: '#a8a8a8', marginLeft: 4 }}>Step {step === 'email' ? 1 : 2} of 2</span>
+          </div>
         </div>
       </div>
 
       {step === 'email' ? (
         <form onSubmit={e => { e.preventDefault(); fetchSecurityQuestion() }} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <FormField label="Email">
-            <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" style={inputStyle} />
+            <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" style={inputStyle} autoFocus />
           </FormField>
           {(error || authError) && <ErrBox msg={authError || error} />}
           <Btn busy={busy} label="Continue" busyLabel="Checking…" />
         </form>
       ) : (
         <form onSubmit={e => { e.preventDefault(); verifySecurityAnswer() }} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ padding: '12px 16px', background: '#f9f9f9', borderRadius: 8, border: '1px solid #e8e8e8', fontSize: 13, color: '#0a0a0a', lineHeight: 1.5 }}>
-            <strong>Security question:</strong> {securityQuestion}
+          <div style={{ padding: '14px 16px', background: '#f9f9f9', borderRadius: 12, border: '1.5px solid #e8e8e8' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#a8a8a8', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 6 }}>Security question</div>
+            <div style={{ fontSize: 13, color: '#0a0a0a', lineHeight: 1.5, fontWeight: 500 }}>{securityQuestion}</div>
           </div>
           <FormField label="Your answer">
-            <input type="text" required value={securityAnswer} onChange={e => setSecurityAnswer(e.target.value)} placeholder="Enter your answer" style={inputStyle} />
+            <input type="text" required value={securityAnswer} onChange={e => setSecurityAnswer(e.target.value)} placeholder="Enter your answer" style={inputStyle} autoFocus />
           </FormField>
           {(error || authError) && <ErrBox msg={authError || error} />}
-          <Btn busy={busy} label="Submit" busyLabel="Verifying…" />
+          <Btn busy={busy} label="Verify & send reset email" busyLabel="Verifying…" />
         </form>
       )}
     </div>
   )
 }
-
 /* ── Register form ── */
 function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
   const { register, authError } = useAuth()
@@ -519,10 +547,10 @@ function ErrBox({ msg }: { msg: string }) {
   )
 }
 
-function Btn({ busy, label, busyLabel }: { busy: boolean; label: string; busyLabel: string }) {
+function Btn({ busy, label, busyLabel, onClick }: { busy: boolean; label: string; busyLabel: string; onClick?: () => void }) {
   const [hov, setHov] = useState(false)
   return (
-    <button type="submit" disabled={busy}
+    <button type={onClick ? 'button' : 'submit'} disabled={busy} onClick={onClick}
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{
         width: '100%', padding: '12px', borderRadius: 10, border: 'none',
