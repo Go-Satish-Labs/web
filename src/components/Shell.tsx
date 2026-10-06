@@ -3,6 +3,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import Logo from './Logo'
 import Footer from './Footer'
 import { useAuth } from '../features/auth/AuthContext'
+import { ProfileRing } from '../pages/SettingsPage'
 
 const navItems = [
   {
@@ -114,21 +115,29 @@ export default function Shell({ children }: { children: ReactNode }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div className="account-chip" style={{
             display: 'flex', alignItems: 'center', gap: 8,
-            padding: '5px 12px 5px 6px', borderRadius: 20,
+            padding: '4px 12px 4px 4px', borderRadius: 20,
             background: 'var(--bg-subtle)', border: '1.5px solid var(--border)',
           }}>
-            <div style={{
-              width: 24, height: 24, borderRadius: '50%',
-              background: 'var(--text)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 11, fontWeight: 700, color: '#fff',
-              overflow: 'hidden', flexShrink: 0,
-            }}>
-              {user?.profilePicUrl
-                ? <img src={user.profilePicUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : (user?.email?.[0]?.toUpperCase() ?? 'U')
-              }
-            </div>
+            {(() => {
+              const picDone = !!user?.profilePicUrl
+              const secDone = !!user?.hasSecurityQuestion
+              const pct = (picDone ? 50 : 0) + (secDone ? 50 : 0)
+              return (
+                <ProfileRing pct={pct} size={30} stroke={2}>
+                  <div style={{
+                    width: 22, height: 22, borderRadius: '50%',
+                    background: 'var(--text)', overflow: 'hidden',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 9, fontWeight: 800, color: '#fff',
+                  }}>
+                    {user?.profilePicUrl
+                      ? <img src={user.profilePicUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : (user?.email?.[0]?.toUpperCase() ?? 'U')
+                    }
+                  </div>
+                </ProfileRing>
+              )
+            })()}
             <span className="account-email" style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-muted)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {user?.displayName || user?.email}
             </span>
