@@ -318,7 +318,7 @@ function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
         throw new Error(err.detail || 'Incorrect security answer.')
       }
       // Trigger Firebase password reset email
-      const { firebaseAuth } = await import('../../lib/firebase')
+      const { firebaseAuth } = await import('../lib/firebase')
       const { sendPasswordResetEmail } = await import('firebase/auth')
       await sendPasswordResetEmail(firebaseAuth, email)
       setSuccess(true)
@@ -339,7 +339,18 @@ function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
         <p style={{ fontSize: 14, color: '#6b6b6b', lineHeight: 1.6, marginBottom: 24 }}>
           Check your inbox for the password reset link. The link expires in a few minutes.
         </p>
-        <Btn label="Back to sign in" onClick={onBack} />
+        <button
+          type="button"
+          onClick={onBack}
+          style={{
+            width: '100%', padding: '12px', borderRadius: 10, border: 'none',
+            fontSize: 14, fontWeight: 700, cursor: 'pointer',
+            background: '#0a0a0a', color: '#ffffff',
+            transition: 'all 0.18s ease',
+          }}
+        >
+          Back to sign in
+        </button>
       </div>
     )
   }
