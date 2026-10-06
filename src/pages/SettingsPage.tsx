@@ -237,9 +237,6 @@ export default function SettingsPage() {
     border: '1px solid #000', background: '#000', color: '#fff',
     cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit',
   }
-  const ghostBtn: React.CSSProperties = {
-    ...btn, background: '#fff', color: '#000', border: '1px solid #d4d4d4',
-  }
   const smBtn: React.CSSProperties = {
     height: 36, padding: '0 16px', borderRadius: 10, fontSize: 13, fontWeight: 600,
     border: '1px solid #000', background: '#000', color: '#fff',
