@@ -63,8 +63,8 @@ export default function LandingPage() {
           position: 'absolute', inset: 0,
           overflowY: 'auto', WebkitOverflowScrolling: 'touch',
           transition: 'filter 0.35s ease, opacity 0.35s ease',
-          filter: modalOpen ? 'blur(4px)' : 'none',
-          opacity: modalOpen ? 0.3 : 1,
+          filter: modalOpen ? 'none' : 'none',
+          opacity: modalOpen ? 0.25 : 1,
         }}
       >
 
@@ -173,9 +173,7 @@ export default function LandingPage() {
           onClick={closeModal}
           style={{
             position: 'absolute', inset: 0, zIndex: 30,
-            background: 'rgba(0,0,0,0.4)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
+            background: 'rgba(0,0,0,0.55)',
             opacity: closing ? 0 : 1,
             transition: 'opacity 0.3s ease',
           }}

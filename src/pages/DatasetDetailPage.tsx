@@ -597,7 +597,7 @@ export default function DatasetDetailPage() {
 
           {/* Preview modal */}
           {showPreview && preview && (
-            <div className="fade-in" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+            <div className="fade-in" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
               <div className="modal-enter" style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 1000, maxHeight: '90vh', overflowY: 'auto', position: 'relative', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
                 <button onClick={() => setShowPreview(false)} className="btn-close" style={{ position: 'absolute', top: 16, right: 16, zIndex: 10 }}>✕</button>
                 <div style={{ padding: 24 }}><PreviewTable preview={preview} /></div>
