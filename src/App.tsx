@@ -62,8 +62,18 @@ function BootGate({ children }: { children: React.ReactNode }) {
 function PublicHome() {
   const { user, loading } = useAuth()
   if (loading) return null
-  if (user) return <Navigate to="/datasets" replace />
+  if (user) {
+    if (!user.hasSecurityQuestion) return <Navigate to="/settings" replace state={{ openSec: true }} />
+    return <Navigate to="/datasets" replace />
+  }
   return <LandingPage />
+}
+
+function RequireSecQ({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth()
+  if (loading) return null
+  if (user && !user.hasSecurityQuestion) return <Navigate to="/settings" replace state={{ openSec: true }} />
+  return <>{children}</>
 }
 
 export default function App() {
@@ -75,11 +85,11 @@ export default function App() {
             <Route path="/" element={<PublicHome />} />
             <Route path="/login"    element={<Navigate to="/" replace state={{ modal: 'login' }} />} />
             <Route path="/register" element={<Navigate to="/" replace state={{ modal: 'register' }} />} />
-            <Route path="/datasets" element={<RequireAuth><DatasetsPage /></RequireAuth>} />
-            <Route path="/datasets/:id" element={<RequireAuth><DatasetDetailPage /></RequireAuth>} />
-            <Route path="/ask"      element={<RequireAuth><AskDataPage /></RequireAuth>} />
-            <Route path="/feedback" element={<RequireAuth><FeedbackPage /></RequireAuth>} />
-            <Route path="/billing"  element={<RequireAuth><BillingPage /></RequireAuth>} />
+            <Route path="/datasets" element={<RequireAuth><RequireSecQ><DatasetsPage /></RequireSecQ></RequireAuth>} />
+            <Route path="/datasets/:id" element={<RequireAuth><RequireSecQ><DatasetDetailPage /></RequireSecQ></RequireAuth>} />
+            <Route path="/ask"      element={<RequireAuth><RequireSecQ><AskDataPage /></RequireSecQ></RequireAuth>} />
+            <Route path="/feedback" element={<RequireAuth><RequireSecQ><FeedbackPage /></RequireSecQ></RequireAuth>} />
+            <Route path="/billing"  element={<RequireAuth><RequireSecQ><BillingPage /></RequireSecQ></RequireAuth>} />
             <Route path="/settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />
             <Route path="*"         element={<Navigate to="/" replace />} />
           </Routes>
