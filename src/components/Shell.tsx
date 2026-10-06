@@ -185,6 +185,7 @@ export default function Shell({ children }: { children: ReactNode }) {
 
       {/* ── Page content ── */}
       <main style={{ paddingLeft: 52 }}>
+        <ProfileCompletionBanner />
         <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 40px' }}>
           {children}
           <Footer />
