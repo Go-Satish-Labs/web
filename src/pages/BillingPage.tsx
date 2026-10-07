@@ -109,6 +109,7 @@ export default function BillingPage() {
   }
 
   const isPremium = user?.plan === 'premium'
+  const canRenew = isPremium && sub?.status === 'cancelled'
   const freePlan = ['3 datasets · 50 MB storage', '3 dashboards', '20 AI questions / month', 'Web only']
   const premiumPlan = ['100 datasets · 2 GB storage', '50 dashboards', '1,000 AI questions / month', 'Web + mobile access', 'Priority support']
 
@@ -156,7 +157,7 @@ export default function BillingPage() {
                 </li>
               ))}
             </ul>
-            {isPremium ? (
+            {isPremium && !canRenew ? (
               <button onClick={cancel} disabled={busy} className="btn-base"
                 style={{ fontSize: 13, color: '#dc2626', background: '#fef2f2', border: '1.5px solid rgba(220,38,38,0.2)', padding: '8px 16px', borderRadius: 8, opacity: busy ? 0.6 : 1 }}>
                 Cancel subscription
@@ -164,7 +165,7 @@ export default function BillingPage() {
             ) : (
               <button onClick={upgrade} disabled={busy} className="btn-base"
                 style={{ width: '100%', padding: '12px', borderRadius: 10, fontSize: 14, fontWeight: 700, color: '#0a0a0a', background: '#ffffff', border: 'none', opacity: busy ? 0.6 : 1 }}>
-                {busy ? 'Processing…' : 'Upgrade to Premium →'}
+                {busy ? 'Processing…' : canRenew ? 'Renew with Razorpay →' : 'Upgrade to Premium →'}
               </button>
             )}
           </div>
