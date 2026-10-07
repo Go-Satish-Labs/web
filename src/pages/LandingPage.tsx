@@ -6,6 +6,7 @@ import { friendlyError } from '../lib/errors'
 import OAuthButtons from '../components/OAuthButtons'
 import Logo from '../components/Logo'
 import VirtualPets from '../components/VirtualPets'
+import { PASSWORD_REQUIREMENTS, passwordPolicyError } from '../lib/passwordPolicy'
 
 const AuthScene = lazy(() => import('../components/AuthScene'))
 
@@ -232,6 +233,11 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
+    const passwordError = passwordPolicyError(password)
+    if (passwordError) {
+      setError(passwordError)
+      return
+    }
     setError(''); setBusy(true)
     try { await login(email, password); onSuccess(); navigate('/datasets') }
     catch (err) { setError(friendlyError(err)) }
@@ -448,8 +454,11 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
           <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" style={inputStyle} />
         </FormField>
         <FormField label="Password">
-          <input type="password" required minLength={8} value={password} onChange={e => setPassword(e.target.value)} placeholder="min 8 characters" style={inputStyle} />
+          <input type="password" required minLength={8} pattern="(?=.*[A-Za-z])(?=.*[0-9])\S{8,}" value={password} onChange={e => setPassword(e.target.value)} placeholder="min 8 characters" style={inputStyle} />
         </FormField>
+        <p style={{ fontSize: 11, color: '#a8a8a8', lineHeight: 1.5, margin: '-6px 0 0' }}>
+          {PASSWORD_REQUIREMENTS} No spaces.
+        </p>
         <FormField label="Security question">
           <input type="text" required value={securityQuestion} onChange={e => setSecurityQuestion(e.target.value)} placeholder="e.g., What was your first pet's name?" style={inputStyle} />
         </FormField>

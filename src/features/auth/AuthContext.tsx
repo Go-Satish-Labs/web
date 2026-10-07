@@ -12,6 +12,7 @@ import {
 import { api } from '../../lib/api'
 import { friendlyError } from '../../lib/errors'
 import { firebaseAuth } from '../../lib/firebase'
+import { passwordPolicyError } from '../../lib/passwordPolicy'
 
 interface User {
   id: string
@@ -146,6 +147,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function register(email: string, password: string, securityQuestion: string, securityAnswer: string) {
     setAuthError('')
+    const passwordError = passwordPolicyError(password)
+    if (passwordError) {
+      setAuthError(passwordError)
+      throw new Error(passwordError)
+    }
     try {
       const credential = await createUserWithEmailAndPassword(firebaseAuth, email, password)
       // Send the verification email immediately. Nothing else is gated on it

@@ -3,7 +3,7 @@
   "short_name": "Analytrix",
   "description": "Upload a spreadsheet and get a dashboard, plain-language answers, and predictions you can check.",
   "icons": [
-    { "src": "/analytrix-loader.svg", "sizes": "any", "type": "image/svg+xml" }
+    { "src": "/analytrix-loader.svg?v=4", "sizes": "any", "type": "image/svg+xml" }
   ],
   "theme_color": "#0f766e",
   "background_color": "#0a0a0a",
