@@ -64,21 +64,31 @@ export default function CompactBootSequence({
         zIndex: 9999,
         display: 'grid',
         placeItems: 'center',
-        background: '#000',
+        background: 'rgba(8, 8, 8, 0.34)',
+        backdropFilter: 'blur(12px) saturate(0.8)',
+        WebkitBackdropFilter: 'blur(12px) saturate(0.8)',
       }}
     >
-      <img
-        src="/analytrix-loader.svg"
-        alt=""
-        width={180}
-        height={142}
+      <div
         style={{
-          display: 'block',
+          display: 'grid',
+          placeItems: 'center',
           width: 'min(180px, 42vw)',
-          height: 'auto',
+          aspectRatio: '1.27',
+          borderRadius: 22,
+          background: '#000',
+          boxShadow: '0 18px 60px rgba(0, 0, 0, 0.32)',
         }}
-        decoding="async"
-      />
+      >
+        <img
+          src="/analytrix-loader.svg"
+          alt=""
+          width={180}
+          height={142}
+          style={{ display: 'block', width: '100%', height: 'auto' }}
+          decoding="async"
+        />
+      </div>
       <button
         onClick={() => finishRef.current()}
         aria-label="Skip startup animation"

@@ -31,7 +31,7 @@ import OnboardingTour from './components/OnboardingTour'
  * not want to wait.
  */
 function BootGate({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const [booting, setBooting] = useState(true)
   const [ready, setReady] = useState(false)
 
@@ -58,7 +58,10 @@ function BootGate({ children }: { children: React.ReactNode }) {
   }, [booting])
 
   if (!booting) return <>{children}</>
-  const Loader = user ? CompactBootSequence : BootSequence
+  // Firebase initially reports no user while it restores a persisted session.
+  // Keep the compact loader mounted during that window so authenticated
+  // refreshes never flash the public full-screen animation.
+  const Loader = authLoading || user ? CompactBootSequence : BootSequence
   return <Loader waiting={!ready} onDone={() => setBooting(false)} />
 }
 

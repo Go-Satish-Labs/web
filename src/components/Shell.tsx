@@ -58,7 +58,7 @@ export default function Shell({ children }: { children: ReactNode }) {
   const pct = (picDone ? 50 : 0) + (secDone ? 50 : 0)
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+    <div className="app-shell" style={{ minHeight: '100vh', background: 'var(--bg)' }}>
 
       {/* ── Vertical tab rail ── */}
       <nav className="vtab-rail">

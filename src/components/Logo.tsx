@@ -14,7 +14,7 @@ export default function Logo({
     <img
       src="/analytrix-loader.svg"
       width={size}
-      height={size}
+      height={Math.round(size / 1.27)}
       alt={alt ?? ''}
       aria-hidden={alt ? undefined : true}
       className={className}
