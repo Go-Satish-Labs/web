@@ -5,6 +5,31 @@ import { api } from '../lib/api'
 import { friendlyError } from '../lib/errors'
 
 interface Subscription { plan: string; status: string; provider: string; current_period_end: string | null }
+interface RazorpaySuccess {
+  razorpay_payment_id: string
+  razorpay_order_id: string
+  razorpay_signature: string
+}
+interface RazorpayFailure { error?: { description?: string } }
+interface RazorpayInstance {
+  open: () => void
+  on: (event: 'payment.failed', handler: (response: RazorpayFailure) => void) => void
+}
+interface RazorpayOptions {
+  key: string
+  amount: number
+  currency: string
+  name: string
+  description: string
+  order_id: string
+  handler: (response: RazorpaySuccess) => void
+  modal: { ondismiss: () => void }
+}
+declare global {
+  interface Window {
+    Razorpay?: new (options: RazorpayOptions) => RazorpayInstance
+  }
+}
 
 const Check = ({ white }: { white?: boolean }) => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={white ? '#fff' : '#16a34a'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
@@ -27,9 +52,52 @@ export default function BillingPage() {
     try {
       const { data: order } = await api.post('/billing/create-order', { plan: 'premium' })
       if (order.provider === 'mock') {
-        await api.post('/billing/confirm', { order_id: order.order_id, payment_id: `mock_pay_${Date.now()}` })
+        await api.post('/billing/confirm', {
+          order_id: order.order_id,
+          payment_id: `mock_pay_${Date.now()}`,
+          signature: 'mock',
+        })
         setMessage('Payment simulated (mock provider) — premium unlocked.')
-      } else { setMessage('Real Razorpay checkout would open here.') }
+      } else {
+        const key = import.meta.env.VITE_RAZORPAY_KEY_ID
+        if (!key || !window.Razorpay) throw new Error('Razorpay Checkout is not configured.')
+        const checkout = new window.Razorpay({
+          key,
+          amount: order.amount,
+          currency: order.currency,
+          name: 'Analytrix',
+          description: 'Premium monthly plan',
+          order_id: order.order_id,
+          handler: async (response) => {
+            try {
+              await api.post('/billing/confirm', {
+                order_id: response.razorpay_order_id,
+                payment_id: response.razorpay_payment_id,
+                signature: response.razorpay_signature,
+              })
+              setMessage('Payment verified — premium unlocked.')
+              await refreshUser()
+              load()
+            } catch (err) {
+              setError(friendlyError(err))
+            } finally {
+              setBusy(false)
+            }
+          },
+          modal: {
+            ondismiss: () => {
+              setMessage('Payment cancelled.')
+              setBusy(false)
+            },
+          },
+        })
+        checkout.on('payment.failed', (response) => {
+          setError(response.error?.description || 'Payment failed. Please try again.')
+          setBusy(false)
+        })
+        checkout.open()
+        return
+      }
       await refreshUser(); load()
     } catch (err) { setError(friendlyError(err)) }
     finally { setBusy(false) }
