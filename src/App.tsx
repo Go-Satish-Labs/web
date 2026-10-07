@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import BootSequence from './components/BootSequence'
+import CompactBootSequence from './components/CompactBootSequence'
 import RequireAuth from './components/RequireAuth'
 import { AuthProvider, useAuth } from './features/auth/AuthContext'
 import { api } from './lib/api'
@@ -30,6 +31,7 @@ import OnboardingTour from './components/OnboardingTour'
  * not want to wait.
  */
 function BootGate({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth()
   const [booting, setBooting] = useState(true)
   const [ready, setReady] = useState(false)
 
@@ -56,7 +58,8 @@ function BootGate({ children }: { children: React.ReactNode }) {
   }, [booting])
 
   if (!booting) return <>{children}</>
-  return <BootSequence waiting={!ready} onDone={() => setBooting(false)} />
+  const Loader = user ? CompactBootSequence : BootSequence
+  return <Loader waiting={!ready} onDone={() => setBooting(false)} />
 }
 
 function PublicHome() {
