@@ -5,12 +5,12 @@ import RequireAuth from './components/RequireAuth'
 import { AuthProvider, useAuth } from './features/auth/AuthContext'
 import { api } from './lib/api'
 import AskDataPage from './pages/AskDataPage'
-import BillingPage from './pages/BillingPage'
 import DatasetDetailPage from './pages/DatasetDetailPage'
 import DatasetsPage from './pages/DatasetsPage'
 import FeedbackPage from './pages/FeedbackPage'
 import LandingPage from './pages/LandingPage'
 import SettingsPage from './pages/SettingsPage'
+import OnboardingTour from './components/OnboardingTour'
 
 /**
  * Plays the boot sequence once on every load, and keeps playing it until the
@@ -89,10 +89,11 @@ export default function App() {
             <Route path="/datasets/:id" element={<RequireAuth><RequireSecQ><DatasetDetailPage /></RequireSecQ></RequireAuth>} />
             <Route path="/ask"      element={<RequireAuth><RequireSecQ><AskDataPage /></RequireSecQ></RequireAuth>} />
             <Route path="/feedback" element={<RequireAuth><RequireSecQ><FeedbackPage /></RequireSecQ></RequireAuth>} />
-            <Route path="/billing"  element={<RequireAuth><RequireSecQ><BillingPage /></RequireSecQ></RequireAuth>} />
+            {/* Billing is temporarily disabled while Razorpay deployment is completed. */}
             <Route path="/settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />
             <Route path="*"         element={<Navigate to="/" replace />} />
           </Routes>
+          <OnboardingTour />
         </BootGate>
       </BrowserRouter>
     </AuthProvider>

@@ -131,7 +131,7 @@ export default function AskDataPage() {
             {error && <div className="shake" style={{ fontSize: 13, color: '#dc2626', marginBottom: 8 }}>{error}</div>}
 
             <div style={{ display: 'flex', gap: 8 }}>
-              <input value={question} onChange={(e) => setQuestion(e.target.value)}
+              <input data-tour="ask-input" value={question} onChange={(e) => setQuestion(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && ask()}
                 placeholder="Ask a question about this dataset…" className="input-base"
                 style={{ flex: 1, padding: '11px 14px', fontSize: 14, borderRadius: 10 }} disabled={busy} />

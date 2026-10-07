@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import Shell from '../components/Shell'
 import { useAuth } from '../features/auth/AuthContext'
 import { api } from '../lib/api'
 import { friendlyError } from '../lib/errors'
+import { markTourReady } from '../components/OnboardingTour'
 
 const CIRC = 2 * Math.PI * 54
 
@@ -126,6 +127,7 @@ function SecurityModal({ onClose, onSaved, existing }: {
 export default function SettingsPage() {
   const { user, refreshUser } = useAuth()
   const location = useLocation()
+  const navigate = useNavigate()
 
   const [displayName, setDisplayName] = useState(user?.displayName ?? '')
   const [savedName, setSavedName] = useState(user?.displayName ?? '')
@@ -220,7 +222,15 @@ export default function SettingsPage() {
         <SecurityModal
           existing={secQ}
           onClose={() => setShowSecModal(false)}
-          onSaved={q => { setSecQ(q); setHasSecQ(true); setShowSecModal(false) }}
+          onSaved={q => {
+            setSecQ(q)
+            setHasSecQ(true)
+            setShowSecModal(false)
+            if (user?.id && window.localStorage.getItem(`analytrix:onboarding:${user.id}`) === 'settings-required') {
+              markTourReady(user.id)
+              navigate('/datasets', { replace: true })
+            }
+          }}
         />
       )}
 

@@ -150,7 +150,7 @@ export default function DatasetsPage() {
           <h1 style={{ fontSize: 22, fontWeight: 800, color: '#0a0a0a', margin: 0, letterSpacing: '-0.02em' }}>Datasets</h1>
           <p style={{ fontSize: 14, color: '#6b6b6b', marginTop: 6 }}>Upload a CSV or Excel file — a dashboard is generated automatically.</p>
         </div>
-        <button onClick={pickFile} disabled={uploading} className="btn-solid btn-base rise" style={{ '--i': 0, display: 'inline-flex', alignItems: 'center', gap: 7, flexShrink: 0 } as React.CSSProperties}>
+        <button data-tour="upload-dataset" onClick={pickFile} disabled={uploading} className="btn-solid btn-base rise" style={{ '--i': 0, display: 'inline-flex', alignItems: 'center', gap: 7, flexShrink: 0 } as React.CSSProperties}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
