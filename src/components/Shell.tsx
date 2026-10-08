@@ -4,6 +4,7 @@ import Logo from './Logo'
 import Footer from './Footer'
 import { useAuth } from '../features/auth/AuthContext'
 import { ProfileRing } from '../pages/SettingsPage'
+import ThemeSelector from './ThemeSelector'
 
 const navItems = [
   {
@@ -108,6 +109,7 @@ export default function Shell({ children }: { children: ReactNode }) {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <ThemeSelector />
           <div
             className="account-chip"
             style={{

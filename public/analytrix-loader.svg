@@ -21,9 +21,6 @@
 <linearGradient id="g" gradientUnits="userSpaceOnUse" x1="200" y1="90" x2="1280" y2="940"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#fff"/></linearGradient>
 <mask id="m" maskUnits="userSpaceOnUse" x="200" y="90" width="1080" height="850"><path class="mk" pathLength="1" d="M684 352C680 410 640 440 560 478C480 516 400 545 345 580C285 618 255 670 255 730C255 840 350 897 460 897C600 897 740 830 740 690L740 380C740 280 820 212 930 212C1000 212 1052 270 1052 345C1052 420 990 450 925 495C860 540 815 610 815 700C815 760 835 800 865 828"/></mask>
 </defs>
-<!-- Keep a quiet silhouette visible in small navbar and favicon renders while
-     the animated drawing phases are between frames. -->
-<path d="M684 352C680 410 640 440 560 478C480 516 400 545 345 580C285 618 255 670 255 730C255 840 350 897 460 897C600 897 740 830 740 690L740 380C740 280 820 212 930 212C1000 212 1052 270 1052 345C1052 420 990 450 925 495C860 540 815 610 815 700C815 760 835 800 865 828" fill="none" stroke="#fff" stroke-width="110" stroke-linecap="round" opacity=".16"/>
 <g>
 <path class="line bar" pathLength="1" style="--i:0" d="M285 614V462"/>
 <path class="line bar" pathLength="1" style="--i:1" d="M360 576V399"/>
