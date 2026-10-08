@@ -31,6 +31,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     document.documentElement.dataset.theme = theme
     window.localStorage.setItem('analytrix:theme', theme)
     if (customColor) {
+      document.documentElement.style.setProperty('--bg', `color-mix(in srgb, ${customColor} 6%, white)`)
+      document.documentElement.style.setProperty('--bg-white', `color-mix(in srgb, ${customColor} 2%, white)`)
+      document.documentElement.style.setProperty('--bg-subtle', `color-mix(in srgb, ${customColor} 10%, white)`)
+      document.documentElement.style.setProperty('--border', `color-mix(in srgb, ${customColor} 22%, #e0e0e0)`)
+      document.documentElement.style.setProperty('--border-strong', `color-mix(in srgb, ${customColor} 38%, #bdbdbd)`)
+      document.documentElement.style.setProperty('--text', `color-mix(in srgb, ${customColor} 18%, #0a0a0a)`)
+      document.documentElement.style.setProperty('--text-muted', `color-mix(in srgb, ${customColor} 38%, #525252)`)
+      document.documentElement.style.setProperty('--text-subtle', `color-mix(in srgb, ${customColor} 24%, #a3a3a3)`)
       document.documentElement.style.setProperty('--accent', customColor)
       document.documentElement.style.setProperty('--brand', customColor)
       document.documentElement.style.setProperty('--brand-gold', customColor)
@@ -39,8 +47,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       document.documentElement.style.setProperty('--brand-tint', `color-mix(in srgb, ${customColor} 8%, white)`)
       document.documentElement.style.setProperty('--brand-tint-2', `color-mix(in srgb, ${customColor} 16%, white)`)
       document.documentElement.style.setProperty('--accent-glow', `color-mix(in srgb, ${customColor} 18%, transparent)`)
+      document.documentElement.style.setProperty('--good', `color-mix(in srgb, ${customColor} 70%, #15803d)`)
+      document.documentElement.style.setProperty('--good-light', `color-mix(in srgb, ${customColor} 8%, white)`)
+      document.documentElement.style.setProperty('--warn', `color-mix(in srgb, ${customColor} 65%, #b45309)`)
+      document.documentElement.style.setProperty('--warn-light', `color-mix(in srgb, ${customColor} 8%, white)`)
     } else {
-      for (const property of ['--accent', '--brand', '--brand-gold', '--brand-deep', '--accent-light', '--brand-tint', '--brand-tint-2', '--accent-glow']) {
+      for (const property of ['--bg', '--bg-white', '--bg-subtle', '--border', '--border-strong', '--text', '--text-muted', '--text-subtle', '--accent', '--brand', '--brand-gold', '--brand-deep', '--accent-light', '--brand-tint', '--brand-tint-2', '--accent-glow', '--good', '--good-light', '--warn', '--warn-light']) {
         document.documentElement.style.removeProperty(property)
       }
     }
