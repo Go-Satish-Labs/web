@@ -66,7 +66,6 @@ export default function ThemeSelector() {
       >
         <span className="theme-wheel theme-wheel-small" style={{ '--theme-a': customColor ?? '#111827', '--theme-b': '#f3f4f6' } as React.CSSProperties} />
         <span className="theme-trigger-label">{customColor ?? 'Mono'}</span>
-        <span aria-hidden="true">⌄</span>
       </button>
       {open && (
         <div ref={pickerRef} className="theme-honeycomb" role="menu" aria-label="Choose color theme">
