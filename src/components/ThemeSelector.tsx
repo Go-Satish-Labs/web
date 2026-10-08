@@ -70,7 +70,18 @@ export default function ThemeSelector() {
       </button>
       {open && (
         <div ref={pickerRef} className="theme-honeycomb" role="menu" aria-label="Choose color theme">
-          <div className="theme-honeycomb-title">Choose your color</div>
+          <div className="theme-picker-header">
+            <span className="theme-picker-heading">Theme</span>
+            <button
+              type="button"
+              className="theme-picker-close"
+              aria-label="Close color selector"
+              onClick={() => setOpen(false)}
+            >
+              <span aria-hidden="true" />
+              <span aria-hidden="true" />
+            </button>
+          </div>
           <div className="color-wheel-wrap">
             <canvas ref={canvasRef} className="color-wheel-canvas" width={360} height={360} onPointerDown={selectColor} onPointerMove={event => event.buttons === 1 && selectColor(event)} />
             <span className="color-wheel-marker" style={{ left: `${markerPosition.left}%`, top: `${markerPosition.top}%`, background: selectedColor }} />
