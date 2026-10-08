@@ -21,7 +21,7 @@ const ThemeContext = createContext<ThemeContextValue | null>(null)
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<ThemeId>(() => {
     const saved = window.localStorage.getItem('analytrix:theme') as ThemeId | null
-    return themes.some(item => item.id === saved) ? saved! : 'honey'
+    return themes.some(item => item.id === saved) ? saved! : 'mono'
   })
 
   useEffect(() => {

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 174" role="img" aria-label="Analytrix">
+  <defs>
+    <linearGradient id="brand" x1="18" y1="18" x2="202" y2="156" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f472b6"/>
+      <stop offset=".48" stop-color="#f59e0b"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+  </defs>
+  <rect width="220" height="174" rx="28" fill="#0a0a0a"/>
+  <g fill="none" stroke="url(#brand)" stroke-linecap="round">
+    <path stroke-width="6" d="M29 111V74M45 103V58M61 95V43M77 86V29M93 76V18"/>
+    <path stroke="#fff" stroke-width="25" d="M102 47C101 66 86 76 62 88C39 100 27 111 27 131C27 151 43 160 62 160C87 160 108 148 108 122V58C108 30 127 16 151 16C169 16 184 29 184 48C184 68 169 76 151 88C133 100 124 112 124 132C124 145 132 153 143 160"/>
+    <path stroke-width="6" d="M176 91a29 29 0 1 1-29-29"/>
+  </g>
+  <circle cx="176" cy="91" r="5" fill="#fff"/>
+</svg>

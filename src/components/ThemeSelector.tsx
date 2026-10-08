@@ -15,7 +15,7 @@ export default function ThemeSelector() {
         aria-expanded={open}
         onClick={() => setOpen(value => !value)}
       >
-        <span className="theme-preview" style={{ background: active.swatches[0] }} />
+        <span className="theme-wheel theme-wheel-small" style={{ '--theme-a': active.swatches[0], '--theme-b': active.swatches[2] } as React.CSSProperties} />
         <span className="theme-trigger-label">{active.label}</span>
         <span aria-hidden="true">⌄</span>
       </button>
@@ -33,9 +33,8 @@ export default function ThemeSelector() {
                 onClick={() => { setTheme(item.id); setOpen(false) }}
                 title={item.label}
               >
-                <span className="theme-hex" style={{ background: item.swatches[1], borderColor: item.swatches[0] }}>
-                  <span style={{ background: item.swatches[0] }} />
-                  <span style={{ background: item.swatches[2] }} />
+                <span className="theme-wheel" style={{ '--theme-a': item.swatches[0], '--theme-b': item.swatches[2] } as React.CSSProperties}>
+                  <span className="theme-wheel-center" style={{ background: item.swatches[1] }} />
                 </span>
                 <span>{item.label}</span>
               </button>

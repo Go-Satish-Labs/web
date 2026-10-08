@@ -12,7 +12,7 @@ export default function Logo({
 }) {
   return (
     <img
-      src="/analytrix-loader.svg"
+      src="/analytrix-mark.svg"
       width={size}
       height={Math.round(size / 1.27)}
       alt={alt ?? ''}
