@@ -14,6 +14,8 @@ export type ThemeId = (typeof themes)[number]['id']
 interface ThemeContextValue {
   theme: ThemeId
   setTheme: (theme: ThemeId) => void
+  customColor: string | null
+  setCustomColor: (color: string) => void
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null)
@@ -23,16 +25,42 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const saved = window.localStorage.getItem('analytrix:theme') as ThemeId | null
     return themes.some(item => item.id === saved) ? saved! : 'mono'
   })
+  const [customColor, setCustomColorState] = useState<string | null>(() => window.localStorage.getItem('analytrix:custom-color'))
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
     window.localStorage.setItem('analytrix:theme', theme)
-  }, [theme])
+    if (customColor) {
+      document.documentElement.style.setProperty('--accent', customColor)
+      document.documentElement.style.setProperty('--brand', customColor)
+      document.documentElement.style.setProperty('--brand-gold', customColor)
+      document.documentElement.style.setProperty('--brand-deep', `color-mix(in srgb, ${customColor} 78%, black)`)
+      document.documentElement.style.setProperty('--accent-light', `color-mix(in srgb, ${customColor} 10%, white)`)
+      document.documentElement.style.setProperty('--brand-tint', `color-mix(in srgb, ${customColor} 8%, white)`)
+      document.documentElement.style.setProperty('--brand-tint-2', `color-mix(in srgb, ${customColor} 16%, white)`)
+      document.documentElement.style.setProperty('--accent-glow', `color-mix(in srgb, ${customColor} 18%, transparent)`)
+    } else {
+      for (const property of ['--accent', '--brand', '--brand-gold', '--brand-deep', '--accent-light', '--brand-tint', '--brand-tint-2', '--accent-glow']) {
+        document.documentElement.style.removeProperty(property)
+      }
+    }
+  }, [theme, customColor])
 
   const value = useMemo(() => ({
     theme,
-    setTheme: (next: ThemeId) => setThemeState(next),
-  }), [theme])
+    setTheme: (next: ThemeId) => {
+      setThemeState(next)
+      if (next !== 'mono') {
+        setCustomColorState(null)
+        window.localStorage.removeItem('analytrix:custom-color')
+      }
+    },
+    customColor,
+    setCustomColor: (color: string) => {
+      setCustomColorState(color)
+      window.localStorage.setItem('analytrix:custom-color', color)
+    },
+  }), [theme, customColor])
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
 }
