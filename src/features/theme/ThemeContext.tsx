@@ -15,7 +15,7 @@ interface ThemeContextValue {
   theme: ThemeId
   setTheme: (theme: ThemeId) => void
   customColor: string | null
-  setCustomColor: (color: string) => void
+  setCustomColor: (color: string | null) => void
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null)
@@ -56,9 +56,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       }
     },
     customColor,
-    setCustomColor: (color: string) => {
+    setCustomColor: (color: string | null) => {
       setCustomColorState(color)
-      window.localStorage.setItem('analytrix:custom-color', color)
+      if (color) {
+        window.localStorage.setItem('analytrix:custom-color', color)
+      } else {
+        window.localStorage.removeItem('analytrix:custom-color')
+      }
     },
   }), [theme, customColor])
 

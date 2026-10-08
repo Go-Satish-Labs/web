@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { themes, useTheme } from '../features/theme/ThemeContext'
+import { useTheme } from '../features/theme/ThemeContext'
 
 export default function ThemeSelector() {
-  const { theme, setTheme, customColor, setCustomColor } = useTheme()
+  const { setTheme, customColor, setCustomColor } = useTheme()
   const [open, setOpen] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const pickerRef = useRef<HTMLDivElement>(null)
   const [selectedColor, setSelectedColor] = useState(customColor ?? '#111827')
   const [markerPosition, setMarkerPosition] = useState({ left: 50, top: 50 })
-  const active = themes.find(item => item.id === theme) ?? themes[5]
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -61,12 +60,12 @@ export default function ThemeSelector() {
       <button
         className="theme-picker-trigger"
         type="button"
-        aria-label={`Color theme: ${active.label}`}
+        aria-label={`Color theme: ${customColor ?? 'Mono'}`}
         aria-expanded={open}
         onClick={() => setOpen(value => !value)}
       >
-        <span className="theme-wheel theme-wheel-small" style={{ '--theme-a': customColor ?? active.swatches[0], '--theme-b': active.swatches[2] } as React.CSSProperties} />
-        <span className="theme-trigger-label">{customColor ?? active.label}</span>
+        <span className="theme-wheel theme-wheel-small" style={{ '--theme-a': customColor ?? '#111827', '--theme-b': '#f3f4f6' } as React.CSSProperties} />
+        <span className="theme-trigger-label">{customColor ?? 'Mono'}</span>
         <span aria-hidden="true">⌄</span>
       </button>
       {open && (
@@ -80,24 +79,19 @@ export default function ThemeSelector() {
             <span className="color-wheel-preview" style={{ background: selectedColor }} />
             <strong>{selectedColor.toUpperCase()}</strong>
           </div>
-          <div className="theme-honeycomb-title theme-presets-title">Quick presets</div>
-          <div className="theme-options">
-            {themes.map(item => (
-              <button
-                key={item.id}
-                type="button"
-                role="menuitemradio"
-                aria-checked={theme === item.id}
-                className={`theme-option${theme === item.id ? ' selected' : ''}`}
-                onClick={() => { setTheme(item.id); setOpen(false) }}
-                title={item.label}
-              >
-                <span className="theme-wheel" style={{ '--theme-a': item.swatches[0], '--theme-b': item.swatches[2] } as React.CSSProperties}>
-                  <span className="theme-wheel-center" style={{ background: item.swatches[1] }} />
-                </span>
-                <span>{item.label}</span>
-              </button>
-            ))}
+          <div className="theme-default-action">
+            <button
+              type="button"
+              className="theme-default-button"
+              onClick={() => {
+                setTheme('mono')
+                setCustomColor(null)
+                setSelectedColor('#111827')
+                setMarkerPosition({ left: 50, top: 50 })
+              }}
+            >
+              Default
+            </button>
           </div>
         </div>
       )}

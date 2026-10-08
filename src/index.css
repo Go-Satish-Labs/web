@@ -97,20 +97,18 @@
 .color-wheel-marker { position: absolute; left: 50%; top: 50%; width: 13px; height: 13px; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 0 1px rgba(0,0,0,.75), 0 0 8px rgba(255,255,255,.8); pointer-events: none; transform: translate(-50%, -50%); }
 .color-wheel-value { display: flex; align-items: center; gap: 9px; margin: 0 auto 14px; padding: 8px 10px; width: fit-content; border: 1px solid var(--border); border-radius: 9px; background: var(--bg-subtle); color: var(--text); font: 600 11px 'IBM Plex Mono', monospace; }
 .color-wheel-preview { width: 22px; height: 22px; border: 1px solid var(--border-strong); border-radius: 6px; }
-.theme-presets-title { margin-top: 4px; }
-.theme-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 6px; }
-.theme-option {
-  display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 4px;
-  border: 1px solid transparent; border-radius: 10px; background: transparent;
-  color: var(--text-muted); font-size: 10px; font-weight: 600; cursor: pointer;
-}
-.theme-option:hover, .theme-option.selected { color: var(--text); background: var(--brand-tint); }
+
 .theme-hex {
   width: 44px; height: 40px; display: flex; align-items: center; justify-content: center; gap: 3px;
   clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0 50%);
   border: 2px solid; transition: transform .2s;
 }
-.theme-option:hover .theme-wheel { transform: translateY(-2px) scale(1.04); }
+.theme-default-action { display: flex; justify-content: center; }
+.theme-default-button {
+  width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 9px;
+  background: var(--bg-subtle); color: var(--text); font-size: 11px; font-weight: 700; cursor: pointer;
+}
+.theme-default-button:hover { border-color: var(--brand); background: var(--brand-tint); }
 
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; }
