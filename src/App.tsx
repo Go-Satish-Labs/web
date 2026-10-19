@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import BootSequence from './components/BootSequence'
 import CompactBootSequence from './components/CompactBootSequence'
 import RequireAuth from './components/RequireAuth'
@@ -76,8 +76,14 @@ function PublicHome() {
 }
 
 function AuthEntry({ mode }: { mode: 'login' | 'register' }) {
-  const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined
-  if (navigation?.type === 'reload') return <Navigate to="/" replace />
+  const location = useLocation()
+  const openedFromLanding = (location.state as { fromLanding?: boolean } | null)?.fromLanding
+  const [allowedFromLanding] = useState(() => {
+    if (!openedFromLanding || sessionStorage.getItem('auth-entry') !== 'pending') return false
+    sessionStorage.removeItem('auth-entry')
+    return true
+  })
+  if (!allowedFromLanding) return <Navigate to="/" replace />
   return <LandingPage authMode={mode} />
 }
 

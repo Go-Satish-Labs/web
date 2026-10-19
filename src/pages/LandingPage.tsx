@@ -36,7 +36,10 @@ export default function LandingPage({ authMode = null }: { authMode?: Exclude<Mo
   }, [authMode])
 
   const modalOpen = modal !== null
-  const openAuthPage = (mode: Exclude<ModalMode, null>) => navigate(`/${mode === 'login' ? 'login' : 'register'}`)
+  const openAuthPage = (mode: Exclude<ModalMode, null>) => {
+    sessionStorage.setItem('auth-entry', 'pending')
+    navigate(`/${mode === 'login' ? 'login' : 'register'}`, { state: { fromLanding: true } })
+  }
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: '#0a0a0a', overflow: 'hidden' }}>
