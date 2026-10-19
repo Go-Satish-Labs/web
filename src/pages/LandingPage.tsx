@@ -1,5 +1,5 @@
 import { useState, useEffect, type FormEvent } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 import { useAuth } from '../features/auth/AuthContext'
 import { friendlyError } from '../lib/errors'
@@ -12,34 +12,31 @@ const AuthScene = lazy(() => import('../components/AuthScene'))
 
 type ModalMode = 'login' | 'register' | null
 
-export default function LandingPage() {
-  const location = useLocation()
-  const routeModal = (location.state as { modal?: ModalMode } | null)?.modal ?? null
-  const [modal, setModal] = useState<ModalMode>(routeModal)
+export default function LandingPage({ authMode = null }: { authMode?: Exclude<ModalMode, null> | null }) {
+  const navigate = useNavigate()
+  const [modal, setModal] = useState<ModalMode>(authMode)
   const [closing, setClosing] = useState(false)
 
-  useEffect(() => {
-    if (routeModal) setModal(routeModal)
-  }, [routeModal])
-
-  function openModal(m: 'login' | 'register') {
-    setClosing(false)
-    setModal(m)
-  }
-
   function closeModal() {
+    if (authMode) {
+      setClosing(true)
+      window.setTimeout(() => navigate('/'), 300)
+      return
+    }
     setClosing(true)
     setTimeout(() => { setModal(null); setClosing(false) }, 300)
   }
 
   // close on Escape
   useEffect(() => {
+    if (!authMode) return
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') closeModal() }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [])
+  }, [authMode])
 
   const modalOpen = modal !== null
+  const openAuthPage = (mode: Exclude<ModalMode, null>) => navigate(`/${mode === 'login' ? 'login' : 'register'}`)
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: '#0a0a0a', overflow: 'hidden' }}>
@@ -88,8 +85,8 @@ export default function LandingPage() {
         <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginRight: 10, letterSpacing: '-0.2px' }}>
           Analytrix
         </span>
-        <Pill active={modal === 'login'} onClick={() => openModal('login')}>Sign in</Pill>
-        <Pill active={modal === 'register'} onClick={() => openModal('register')}>Sign up</Pill>
+        <Pill active={modal === 'login'} onClick={() => openAuthPage('login')}>Sign in</Pill>
+        <Pill active={modal === 'register'} onClick={() => openAuthPage('register')}>Sign up</Pill>
       </nav>
 
       {/* ── Hero ── */}
@@ -135,8 +132,8 @@ export default function LandingPage() {
         </p>
 
         <div style={{ display: 'flex', gap: 12, pointerEvents: 'all' }}>
-          <HeroBtn primary onClick={() => openModal('register')}>Get started free</HeroBtn>
-          <HeroBtn onClick={() => openModal('login')}>Sign in</HeroBtn>
+          <HeroBtn primary onClick={() => openAuthPage('register')}>Get started free</HeroBtn>
+          <HeroBtn onClick={() => openAuthPage('login')}>Sign in</HeroBtn>
         </div>
 
         {/* stats */}
@@ -186,33 +183,55 @@ export default function LandingPage() {
         <div style={{
           position: 'absolute', inset: 0, zIndex: 40,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '80px 20px 40px',
+          padding: authMode ? 0 : '80px 20px 40px',
           pointerEvents: 'none',
         }}>
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
+              position: 'relative',
               pointerEvents: 'all',
-              width: '100%', maxWidth: 400,
+              width: '100%', maxWidth: authMode ? 520 : 400,
+              minHeight: authMode ? '100%' : undefined,
+              maxHeight: authMode ? '100vh' : undefined,
+              overflowY: authMode ? 'auto' : undefined,
               background: '#ffffff',
-              borderRadius: 20,
+              borderRadius: authMode ? 0 : 20,
               padding: '32px 32px 28px',
-              boxShadow: '0 40px 100px rgba(0,0,0,0.6)',
+              boxShadow: authMode ? 'none' : '0 40px 100px rgba(0,0,0,0.6)',
               opacity: closing ? 0 : 1,
               transform: closing ? 'translateY(16px) scale(0.98)' : 'translateY(0) scale(1)',
-              transition: 'opacity 0.3s ease, transform 0.3s cubic-bezier(0.22,1,0.36,1)',
+              transition: 'opacity 0.3s ease, transform 0.3s cubic-bezier(0.22,1,0.36,1), max-width 0.3s ease',
             }}
             className="modal-enter"
           >
+            {authMode && (
+              <button
+                type="button"
+                aria-label="Close authentication page"
+                onClick={closeModal}
+                style={{
+                  position: authMode ? 'fixed' : 'absolute', top: 20, right: 20,
+                  width: 36, height: 36, borderRadius: '50%',
+                  border: '1px solid #e5e5e5', background: '#fff',
+                  color: '#525252', fontSize: 22, lineHeight: 1,
+                  cursor: 'pointer', transition: 'background 0.18s ease, transform 0.18s ease',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#f5f5f5'; e.currentTarget.style.transform = 'rotate(90deg)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.transform = 'rotate(0deg)' }}
+              >
+                ×
+              </button>
+            )}
             {/* tab switcher inside modal */}
             <div style={{ display: 'flex', gap: 0, marginBottom: 24, background: '#f3f3f3', borderRadius: 10, padding: 3 }}>
-              <ModalTab active={modal === 'login'} onClick={() => setModal('login')}>Sign in</ModalTab>
-              <ModalTab active={modal === 'register'} onClick={() => setModal('register')}>Sign up</ModalTab>
+              <ModalTab active={modal === 'login'} onClick={() => authMode ? openAuthPage('login') : setModal('login')}>Sign in</ModalTab>
+              <ModalTab active={modal === 'register'} onClick={() => authMode ? openAuthPage('register') : setModal('register')}>Sign up</ModalTab>
             </div>
 
             {modal === 'login'
-              ? <LoginForm onSuccess={closeModal} />
-              : <RegisterForm onSuccess={closeModal} />
+              ? <LoginForm onSuccess={authMode ? () => {} : closeModal} />
+              : <RegisterForm onSuccess={authMode ? () => {} : closeModal} />
             }
           </div>
         </div>

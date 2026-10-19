@@ -89,8 +89,8 @@ export default function App() {
         <BootGate>
           <Routes>
             <Route path="/" element={<PublicHome />} />
-            <Route path="/login"    element={<Navigate to="/" replace state={{ modal: 'login' }} />} />
-            <Route path="/register" element={<Navigate to="/" replace state={{ modal: 'register' }} />} />
+            <Route path="/login"    element={<LandingPage authMode="login" />} />
+            <Route path="/register" element={<LandingPage authMode="register" />} />
             <Route path="/datasets" element={<RequireAuth><RequireSecQ><DatasetsPage /></RequireSecQ></RequireAuth>} />
             <Route path="/datasets/:id" element={<RequireAuth><RequireSecQ><DatasetDetailPage /></RequireSecQ></RequireAuth>} />
             <Route path="/ask"      element={<RequireAuth><RequireSecQ><AskDataPage /></RequireSecQ></RequireAuth>} />
