@@ -183,7 +183,7 @@ export default function LandingPage({ authMode = null }: { authMode?: Exclude<Mo
         <div style={{
           position: 'absolute', inset: 0, zIndex: 40,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: authMode ? 0 : '80px 20px 40px',
+          padding: authMode ? '24px 16px' : '80px 20px 40px',
           pointerEvents: 'none',
         }}>
           <div
@@ -191,14 +191,14 @@ export default function LandingPage({ authMode = null }: { authMode?: Exclude<Mo
             style={{
               position: 'relative',
               pointerEvents: 'all',
-              width: '100%', maxWidth: authMode ? 520 : 400,
-              minHeight: authMode ? '100%' : undefined,
-              maxHeight: authMode ? '100vh' : undefined,
+              width: authMode ? 'min(100%, 460px)' : '100%',
+              maxWidth: authMode ? 460 : 400,
+              maxHeight: authMode ? 'calc(100vh - 48px)' : undefined,
               overflowY: authMode ? 'auto' : undefined,
               background: '#ffffff',
-              borderRadius: authMode ? 0 : 20,
+              borderRadius: 20,
               padding: '32px 32px 28px',
-              boxShadow: authMode ? 'none' : '0 40px 100px rgba(0,0,0,0.6)',
+              boxShadow: '0 40px 100px rgba(0,0,0,0.6)',
               opacity: closing ? 0 : 1,
               transform: closing ? 'translateY(16px) scale(0.98)' : 'translateY(0) scale(1)',
               transition: 'opacity 0.3s ease, transform 0.3s cubic-bezier(0.22,1,0.36,1), max-width 0.3s ease',
@@ -211,7 +211,7 @@ export default function LandingPage({ authMode = null }: { authMode?: Exclude<Mo
                 aria-label="Close authentication page"
                 onClick={closeModal}
                 style={{
-                  position: authMode ? 'fixed' : 'absolute', top: 20, right: 20,
+                  position: 'absolute', top: 16, right: 16,
                   width: 36, height: 36, borderRadius: '50%',
                   border: '1px solid #e5e5e5', background: '#fff',
                   color: '#525252', fontSize: 22, lineHeight: 1,
