@@ -75,6 +75,12 @@ function PublicHome() {
   return <LandingPage />
 }
 
+function AuthEntry({ mode }: { mode: 'login' | 'register' }) {
+  const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined
+  if (navigation?.type === 'reload') return <Navigate to="/" replace />
+  return <LandingPage authMode={mode} />
+}
+
 function RequireSecQ({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   if (loading) return null
@@ -89,8 +95,8 @@ export default function App() {
         <BootGate>
           <Routes>
             <Route path="/" element={<PublicHome />} />
-            <Route path="/login"    element={<LandingPage authMode="login" />} />
-            <Route path="/register" element={<LandingPage authMode="register" />} />
+            <Route path="/login"    element={<AuthEntry mode="login" />} />
+            <Route path="/register" element={<AuthEntry mode="register" />} />
             <Route path="/datasets" element={<RequireAuth><RequireSecQ><DatasetsPage /></RequireSecQ></RequireAuth>} />
             <Route path="/datasets/:id" element={<RequireAuth><RequireSecQ><DatasetDetailPage /></RequireSecQ></RequireAuth>} />
             <Route path="/ask"      element={<RequireAuth><RequireSecQ><AskDataPage /></RequireSecQ></RequireAuth>} />
