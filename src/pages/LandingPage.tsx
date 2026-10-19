@@ -17,6 +17,10 @@ export default function LandingPage({ authMode = null }: { authMode?: Exclude<Mo
   const [modal, setModal] = useState<ModalMode>(authMode)
   const [closing, setClosing] = useState(false)
 
+  useEffect(() => {
+    if (authMode) setModal(authMode)
+  }, [authMode])
+
   function closeModal() {
     if (authMode) {
       setClosing(true)
